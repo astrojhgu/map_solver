@@ -1,11 +1,5 @@
 #![allow(non_snake_case)]
-extern crate ndarray;
-extern crate sprs;
-extern crate num_traits;
-extern crate chfft;
-extern crate linear_solver;
-
-
+use num_complex::Complex;
 use linear_solver::minres::agmres::AGmresState;
 use std::iter::FromIterator;
 use chfft::RFft1D;
@@ -78,6 +72,20 @@ where T:Copy+Zero
 
     result
 }
+
+pub fn deconv<T>(data: &[T], kernel: &[Complex<T>])->Vec<T>
+where T: Float + FloatConst + NumAssign + std::fmt::Debug
+{
+    let mut rfft=chfft::RFft1D::<T>::new(data.len());
+    let mut s=rfft.forward(data);
+    assert!(s.len()==kernel.len());
+    for i in 0..s.len(){
+        s[i]=s[i]/kernel[i];
+    }
+    rfft.backward(&s[..])
+}
+
+
 
 
 impl MappingProblem{
