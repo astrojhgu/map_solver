@@ -97,7 +97,7 @@ impl MappingProblem{
         let ca=ftf_inv_ft.dot(&circmat_x_mat(cm_pink.as_slice().unwrap(), ftf_inv_ft.t()));
         let ca=(&ca+&ca.t())/2.0;//should be symm, otherwise, it is caused numeric round off err
 
-        println!("{:?}", ca);
+        //println!("{:?}", ca);
         MappingProblem{
             ptr_mat, 
             cm_white, 
@@ -145,6 +145,9 @@ impl MappingProblem{
         };
 
         let x=Array1::<f64>::zeros(b.len());
+        //println!("{:?}", a);
+        //println!("{:?}", b);
+        
         let mut ags=AGmresState::new(&A, x.view(), b.view(), &M, m_max, 1, 1, 0.4, 1e-6);
         let mut cnt = 0;
         while !ags.converged {
@@ -159,8 +162,8 @@ impl MappingProblem{
 
     pub fn gen_sky_equation(&self, m_max_a: usize)->(CsMat<f64>, Array1<f64>){
         let cm_white_inv_diag:Vec<_>=self.cm_white.iter().map(|&x|{1.0/x}).collect();
-        let a=self.solve_a(m_max_a);
         let cm_white_inv=diag2csmat(&cm_white_inv_diag);
+        let a=self.solve_a(m_max_a);
         let lhs=&self.ptr_mat.transpose_view()*&(&cm_white_inv*&self.ptr_mat);
         //let rhs=&self.ptr_mat.transpose_view()*&(&cm_white_inv*&(&self.tod-self.F.dot(&a)));
         let y_fa=&self.tod-&self.F.dot(&a);
