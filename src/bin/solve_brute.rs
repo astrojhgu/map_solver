@@ -1,7 +1,8 @@
 use map_solver::deconv;
 use num_complex::Complex64;
 use clap::{App, Arg};
-use ndarray::{ArrayView1, Array1};
+use fitsimg::write_img;
+use ndarray::{ArrayView1, Array1, Array2};
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 use linear_solver::minres::agmres::AGmresState;
@@ -26,13 +27,13 @@ fn main(){
             .help("tod data")
             .required(true)
         )
-        .arg(Arg::with_name("answer")
-            .short("a")
-            .long("ans")
-            .value_name("answer")
+        .arg(Arg::with_name("output")
+            .short("o")
+            .long("out")
             .takes_value(true)
-            .help("answer")
+            .value_name("outfile")
             .required(true)
+            .help("output file name")
         )
         .arg(Arg::with_name("noise spectrum")
             .short("n")
@@ -47,25 +48,23 @@ fn main(){
 
     let scan=RawMM::<f64>::from_file(matches.value_of("pointing matrix").unwrap()).to_sparse();
     let tod=RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
-    let answer=RawMM::<f64>::from_file(matches.value_of("answer").unwrap()).to_array1();
+    
+    let noise=RawMM::<f64>::from_file(matches.value_of("noise spectrum").unwrap()).to_array1();
 
-    let noise=RawMM::<Complex64>::from_file(matches.value_of("noise spectrum").unwrap()).to_array1();
+    let mut rfft=chfft::RFft1D::<f64>::new(noise.len());
+    let fnoise=rfft.forward(noise.as_slice().unwrap());
 
-    let noise1=deconv(tod.as_slice().unwrap(), noise.as_slice().unwrap());
+    //let noise1=deconv(tod.as_slice().unwrap(), noise.as_slice().unwrap());
 
     println!("{:?}", tod.shape());
     let ata=&scan.transpose_view()*&scan;
     
-    let b=sp_mul_a1(&scan.transpose_view(), Array1::from_vec(deconv(tod.as_slice().unwrap(), noise.as_slice().unwrap())).view());
-    let b1=sp_mul_a1(&ata, answer.view());
+    let b=sp_mul_a1(&scan.transpose_view(), Array1::from_vec(deconv(tod.as_slice().unwrap(), fnoise.as_slice())).view());
 
-    let r=&b1-&b;
-
-    println!("{:?}", r);
     let A = |x: ArrayView1<f64>| -> Array1<f64> {
         //a.dot(&x.to_owned())
         //sp_mul_a1(&ata, x)
-        sp_mul_a1(&scan.transpose_view(), Array1::from_vec(deconv(sp_mul_a1(&scan, x).as_slice().unwrap(), noise.as_slice().unwrap())).view())
+        sp_mul_a1(&scan.transpose_view(), Array1::from_vec(deconv(sp_mul_a1(&scan, x).as_slice().unwrap(), fnoise.as_slice())).view())
     };
     
     let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
@@ -82,15 +81,7 @@ fn main(){
     loop{
         cnt += 1;
         if cnt % 1 == 0 {
-            let r=&ags.x-&answer;
-            let delta=r.iter().max_by(|a,b|{if a.abs()<b.abs() {
-                std::cmp::Ordering::Less
-                }else{
-                std::cmp::Ordering::Greater
-                }
-            }).unwrap();
-
-            println!("{} {}", ags.resid, delta);
+            println!("{}", ags.resid);
             //println!("{}", delta);
         }
         if ags.converged{
@@ -100,14 +91,6 @@ fn main(){
         //ags.next(&A);
     }
 
-    let r=&ags.x-&answer;
-    let delta=r.iter().max_by(|a,b|{if a.abs()<b.abs() {
-        std::cmp::Ordering::Less
-    }else{
-        std::cmp::Ordering::Greater
-    }}).unwrap();
+    RawMM::from_array1(ags.x.view()).to_file(matches.value_of("output").unwrap());
 
-
-    //println!("{:?}", &ags.x-&answer);
-    //println!("{}", delta);
 }
