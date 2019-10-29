@@ -1,8 +1,6 @@
 use clap::{App, Arg};
 use linear_solver::io::RawMM;
-use ndarray::{Array2};
-use map_solver::MappingProblem;
-use fitsimg::write_img;
+use map_solver::madam::MappingProblem;
 
 pub fn main(){
     let matches=App::new("solve")

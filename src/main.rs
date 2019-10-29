@@ -1,9 +1,10 @@
+#![allow(non_snake_case)]
 extern crate map_solver;
 extern crate linear_solver;
 
+
 use linear_solver::io::RawMM;
-use ndarray::{Array1, Array2};
-use map_solver::MappingProblem;
+use map_solver::madam::MappingProblem;
 fn main() {
     let ptr_mat=RawMM::<f64>::from_file("A_no_conv.mtx").to_sparse();
     let cm_white=RawMM::<f64>::from_file("nnt.mtx").to_array1();

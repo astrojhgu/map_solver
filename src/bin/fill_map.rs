@@ -1,7 +1,6 @@
 use clap::{App, Arg};
 use linear_solver::io::RawMM;
 use ndarray::{Array2};
-use map_solver::MappingProblem;
 use fitsimg::write_img;
 
 pub fn main(){
@@ -50,5 +49,5 @@ pub fn main(){
         image[((i_max-i) as usize, (j-j_min) as usize)]=v;
     }
 
-    write_img(matches.value_of("output").unwrap().to_string(), &image.into_dyn());
+    write_img(matches.value_of("output").unwrap().to_string(), &image.into_dyn()).unwrap();
 }
