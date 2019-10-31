@@ -2,7 +2,7 @@ use clap::{App, Arg};
 use linear_solver::io::RawMM;
 use map_solver::madam::MappingProblem;
 
-pub fn main(){
+pub fn main() {
     let matches=App::new("solve")
         .arg(Arg::with_name("tod")
             .short("t")
@@ -58,25 +58,24 @@ pub fn main(){
             .takes_value(true)
             .value_name("outfile")
             .required(true)
-            .help("output fits file name")
+            .help("output mtx file name")
         ).get_matches();
 
+    let tod = RawMM::<f64>::from_file(matches.value_of("tod").unwrap()).to_array1();
+    let ptr_mat = RawMM::<f64>::from_file(matches.value_of("ptr_matrix").unwrap()).to_sparse();
+    let cov_white = RawMM::<f64>::from_file(matches.value_of("nnt").unwrap()).to_array1();
+    let cov_coeff_pink =
+        RawMM::<f64>::from_file(matches.value_of("pink_coeff").unwrap()).to_array1();
+    let base_func = RawMM::<f64>::from_file(matches.value_of("F").unwrap()).to_array2();
 
-    let tod=RawMM::<f64>::from_file(matches.value_of("tod").unwrap()).to_array1();
-    let ptr_mat=RawMM::<f64>::from_file(matches.value_of("ptr_matrix").unwrap()).to_sparse();
-    let cov_white=RawMM::<f64>::from_file(matches.value_of("nnt").unwrap()).to_array1();
-    let cov_coeff_pink=RawMM::<f64>::from_file(matches.value_of("pink_coeff").unwrap()).to_array1();
-    let base_func=RawMM::<f64>::from_file(matches.value_of("F").unwrap()).to_array2();
-    
-    let mp=MappingProblem::new(ptr_mat, cov_white, cov_coeff_pink, base_func, tod);
+    let mp = MappingProblem::new(ptr_mat, cov_white, cov_coeff_pink, base_func, tod);
 
-    let x=mp.solve_sky(3, 30);
-    
+    let x = mp.solve_sky(3, 30);
+
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 
-    if matches.is_present("output resid"){
-        let resid=&mp.tod-&mp.apply_ptr_mat(x.view());
+    if matches.is_present("output resid") {
+        let resid = &mp.tod - &mp.apply_ptr_mat(x.view());
         RawMM::from_array1(resid.view()).to_file(matches.value_of("output resid").unwrap());
     }
-
 }

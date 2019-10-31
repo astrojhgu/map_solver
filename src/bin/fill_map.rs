@@ -1,9 +1,9 @@
 use clap::{App, Arg};
-use linear_solver::io::RawMM;
-use ndarray::{Array2};
 use fitsimg::write_img;
+use linear_solver::io::RawMM;
+use ndarray::Array2;
 
-pub fn main(){
+pub fn main() {
     let matches=App::new("solve")
     .arg(Arg::with_name("solution")
         .short("s")
@@ -31,23 +31,28 @@ pub fn main(){
     )
     .get_matches();
 
-    let x=RawMM::<f64>::from_file(matches.value_of("solution").unwrap()).to_array1();
+    let x = RawMM::<f64>::from_file(matches.value_of("solution").unwrap()).to_array1();
 
-    let pix_idx=RawMM::<isize>::from_file(matches.value_of("pix_idx").unwrap()).to_array2();
+    let pix_idx = RawMM::<isize>::from_file(matches.value_of("pix_idx").unwrap()).to_array2();
 
-    let ilist=pix_idx.column(0);
-    let jlist=pix_idx.column(1);
+    let ilist = pix_idx.column(0);
+    let jlist = pix_idx.column(1);
 
-    let i_max=*pix_idx.column(0).iter().max().unwrap();
-    let i_min=*pix_idx.column(0).iter().min().unwrap();
-    let j_max=*pix_idx.column(1).iter().max().unwrap();
-    let j_min=*pix_idx.column(1).iter().min().unwrap();
+    let i_max = *pix_idx.column(0).iter().max().unwrap();
+    let i_min = *pix_idx.column(0).iter().min().unwrap();
+    let j_max = *pix_idx.column(1).iter().max().unwrap();
+    let j_min = *pix_idx.column(1).iter().min().unwrap();
 
-    let mut image=Array2::<f64>::zeros([(i_max-i_min+1) as usize, (j_max-j_min+1) as usize]);
-    
-    for (&v, (&i, &j)) in x.iter().zip(ilist.iter().zip(jlist.iter())){
-        image[((i_max-i) as usize, (j-j_min) as usize)]=v;
+    let mut image =
+        Array2::<f64>::zeros([(i_max - i_min + 1) as usize, (j_max - j_min + 1) as usize]);
+
+    for (&v, (&i, &j)) in x.iter().zip(ilist.iter().zip(jlist.iter())) {
+        image[((i_max - i) as usize, (j - j_min) as usize)] = v;
     }
 
-    write_img(matches.value_of("output").unwrap().to_string(), &image.into_dyn()).unwrap();
+    write_img(
+        matches.value_of("output").unwrap().to_string(),
+        &image.into_dyn(),
+    )
+    .unwrap();
 }
