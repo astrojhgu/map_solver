@@ -7,22 +7,20 @@ use crate::utils::deconv;
 
 use crate::utils::{circmat_x_mat, diag2csmat, csmat2diag};
 
+
 pub struct MappingProblem{
     pub ptr_mat: CsMat<f64>,
-    pub cov_mat: Array1<f64>,//assuming the noise is stationary
     pub tod: Array1<f64>,
 }
 
 
 impl MappingProblem{
     pub fn new(ptr_mat: CsMat<f64>, 
-    cov_mat: Array1<f64>,
     tod: Array1<f64>,
     )->MappingProblem{
         //circmat_x_mat(cm_pink.as_slice().unwrap(), F.view());
         MappingProblem{
             ptr_mat, 
-            cov_mat,
             tod
         }
     }
@@ -33,17 +31,14 @@ impl MappingProblem{
 
 
     pub fn solve_sky(&self, m_max: usize)-> Array1<f64>{
-        let mut rfft=chfft::RFft1D::<f64>::new(self.cov_mat.len());
-        let fnoise=rfft.forward(self.cov_mat.as_slice().unwrap());
-
-
+        let ata=&self.ptr_mat.transpose_view()*&self.ptr_mat;
         let A = |x: ArrayView1<f64>| -> Array1<f64> {
-            sp_mul_a1(&self.ptr_mat.transpose_view(), Array1::from(deconv(sp_mul_a1(&self.ptr_mat, x).as_slice().unwrap(), fnoise.as_slice())).view())
+            sp_mul_a1(&ata, x)
         };
     
         let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
 
-        let b=sp_mul_a1(&self.ptr_mat.transpose_view(), Array1::from(deconv(self.tod.as_slice().unwrap(), fnoise.as_slice())).view());
+        let b=sp_mul_a1(&self.ptr_mat.transpose_view(), self.tod.view());
 
         let x=Array1::<f64>::zeros(b.len());
         let tol=1e-12;

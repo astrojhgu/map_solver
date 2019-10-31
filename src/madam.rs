@@ -97,6 +97,10 @@ impl MappingProblem{
         ags.x
     }
 
+    pub fn apply_ptr_mat(&self, x: ArrayView1<f64>)->Array1<f64>{
+        sp_mul_a1(&self.ptr_mat, x)
+    }
+
     pub fn gen_sky_equation(&self, m_max_a: usize)->(CsMat<f64>, Array1<f64>){
         let cm_white_inv_diag:Vec<_>=self.cm_white.iter().map(|&x|{1.0/x}).collect();
         let cm_white_inv=diag2csmat(&cm_white_inv_diag);

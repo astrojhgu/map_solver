@@ -30,7 +30,7 @@ pub fn main(){
         )
         .arg(Arg::with_name("pink_coeff")
             .short("k")
-            .long("pc")
+            .long("pink")
             .takes_value(true)
             .value_name("coeff file")
             .required(true)
@@ -44,13 +44,21 @@ pub fn main(){
             .required(true)
             .help("the base functions are supplied as a matrix file, each column of which is the base function in time domain")
         )
+        .arg(Arg::with_name("output resid")
+            .short("r")
+            .long("resid")
+            .takes_value(true)
+            .value_name("resid file")
+            .required(false)
+            .help("output resid")
+        )
         .arg(Arg::with_name("output")
-        .short("o")
-        .long("out")
-        .takes_value(true)
-        .value_name("outfile")
-        .required(true)
-        .help("output fits file name")
+            .short("o")
+            .long("out")
+            .takes_value(true)
+            .value_name("outfile")
+            .required(true)
+            .help("output fits file name")
         ).get_matches();
 
 
@@ -65,4 +73,10 @@ pub fn main(){
     let x=mp.solve_sky(3, 30);
     
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
+
+    if matches.is_present("output resid"){
+        let resid=&mp.tod-&mp.apply_ptr_mat(x.view());
+        RawMM::from_array1(resid.view()).to_file(matches.value_of("output resid").unwrap());
+    }
+
 }
