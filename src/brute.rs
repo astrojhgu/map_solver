@@ -47,7 +47,7 @@ impl MappingProblem {
         );
 
         let x = Array1::<f64>::zeros(b.len());
-        let tol = 1e-12;
+        let tol = 1e-15;
         let mut ags = AGmresState::<f64>::new(&A, x.view(), b.view(), &M, m_max, 1, 1, 0.4, tol);
 
         let mut cnt = 0;
