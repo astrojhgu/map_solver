@@ -1,7 +1,7 @@
 use crate::utils::deconv;
-use linear_solver::bicgstab::BiCGStabState;
 use linear_solver::minres::agmres::AGmresState;
 use linear_solver::minres::gmres::GmresState;
+use linear_solver::bicgstab::BiCGStabState;
 use linear_solver::utils::sp_mul_a1;
 use ndarray::{Array1, ArrayView1};
 use sprs::CsMat;
@@ -12,6 +12,7 @@ pub struct MappingProblem {
     pub tod: Array1<f64>,
     pub tol: f64,
     pub m_max: usize, 
+    pub x: Option<Array1<f64>>, 
 }
 
 impl MappingProblem {
@@ -23,6 +24,7 @@ impl MappingProblem {
             tod,
             tol: 1e-12,
             m_max: 50,
+            x: None
         }
     }
 
@@ -36,11 +38,16 @@ impl MappingProblem {
         self
     }
 
+    pub fn with_init_value(mut self, x: Array1<f64>)->MappingProblem{
+        self.x=Some(x);
+        self
+    }
+
     pub fn apply_ptr_mat(&self, x: ArrayView1<f64>) -> Array1<f64> {
         sp_mul_a1(&self.ptr_mat, x)
     }
 
-    pub fn solve_sky(&self) -> Array1<f64> {
+    pub fn solve_sky(&self, mut cb: Option<&mut dyn FnMut(&Array1<f64>)>) -> Array1<f64> {
         let mut rfft = chfft::RFft1D::<f64>::new(self.cov_mat.len());
         let fnoise = rfft.forward(self.cov_mat.as_slice().unwrap());
 
@@ -55,17 +62,21 @@ impl MappingProblem {
             )
         };
 
-        let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
+        //let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
 
         let b = sp_mul_a1(
             &self.ptr_mat.transpose_view(),
             Array1::from(deconv(self.tod.as_slice().unwrap(), fnoise.as_slice())).view(),
         );
 
-        let x = Array1::<f64>::zeros(b.len());
+        let x = if let Some(ref x)=self.x{
+            x.clone()
+        }else{
+            Array1::<f64>::zeros(b.len())
+        };
         let tol = self.tol;
         let m_max=self.m_max;
-        let mut ags = AGmresState::<f64>::new(&A, x.view(), b.view(), &M, m_max, 1, 1, 0.4, tol);
+        let mut ags = AGmresState::<f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
 
         //let mut ags = GmresState::<f64>::new(&A, x.view(), b.view(), &M, m_max, tol);
 
@@ -75,14 +86,17 @@ impl MappingProblem {
         loop {
             cnt += 1;
             if cnt % 1 == 0 {
-                println!("{}", ags.resid);
-                //println!("{}", ags.calc_resid(&A, &b));
+                //println!("b={}", ags.resid);
+                println!("{}", ags.calc_resid(&A, &b).iter().map(|&x|{x.powi(2)}).sum::<f64>());
                 //println!("{}", delta);
             }
             if ags.converged {
                 break;
             }
-            ags.next(&A, &M);
+            ags.next(&A, None);
+            if let Some(ref mut f)=cb{
+                f(&ags.x);
+            }
             //ags.next(&A);
             //ags.next(&A);
         }

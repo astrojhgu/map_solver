@@ -2,7 +2,8 @@
 
 use clap::{App, Arg};
 use linear_solver::io::RawMM;
-use map_solver::brute::MappingProblem;
+use map_solver::brute::MappingProblem as BruteSolver;
+use map_solver::naive::MappingProblem as NaiveSolver;
 
 fn main() {
     let matches = App::new("solve map making problem with noise model")
@@ -69,6 +70,15 @@ fn main() {
                 .value_name("m_max")
                 .help("m_max param for the solver")
         )
+        .arg(
+            Arg::with_name("init")
+                .short("i")
+                .long("init")
+                .takes_value(true)
+                .required(false)
+                .value_name("initial guess")
+                .help("initial guess")
+        )
         .get_matches();
     //.arg(Arg::with_name("noise spectrum"))
 
@@ -81,8 +91,18 @@ fn main() {
     let tol=matches.value_of("tol").or(Some("1e-15")).unwrap().parse::<f64>().unwrap();
     let m_max=matches.value_of("m_max").or(Some("50")).unwrap().parse::<usize>().unwrap();
 
-    let mp = MappingProblem::new(scan, noise, tod).with_tol(tol).with_m_max(m_max);
-    let x = mp.solve_sky();
+    let x = 
+        if matches.is_present("init"){
+            RawMM::<f64>::from_file(matches.value_of("init").unwrap()).to_array1()
+        }else{
+            let mp = NaiveSolver::new(scan.clone(), tod.clone()).with_tol(tol).with_m_max(m_max);
+            mp.solve_sky()
+        };
+
+    let mp = BruteSolver::new(scan, noise, tod).with_tol(tol).with_m_max(m_max).with_init_value(x);
+    let x = mp.solve_sky(Some(&mut |x|{
+        RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());    
+    }));
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 

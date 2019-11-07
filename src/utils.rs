@@ -43,6 +43,23 @@ where
     result
 }
 
+pub fn circmat_inv_x_mat<T>(m: &[T], x: ArrayView2<T>)->Array2<T>
+where
+    T: Float + FloatConst + NumAssign + std::fmt::Debug,
+{
+    let mut fft = chfft::RFft1D::new(m.len());
+    let a = fft.forward(m);
+    let mut result = Array2::<T>::zeros((x.nrows(), x.ncols()));
+
+    for i in 0..x.ncols() {
+        let b = fft.forward(x.column(i).to_owned().as_slice().unwrap());
+        let c: Vec<_> = a.iter().zip(b.iter()).map(|(&a, &b)| b/a ).collect();
+        let d = fft.backward(&c);
+        result.column_mut(i).assign(&Array1::from(d));
+    }
+    result
+}
+
 pub fn diag2csmat<T>(diag: &[T]) -> CsMat<T>
 where
     T: Copy,

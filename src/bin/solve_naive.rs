@@ -49,7 +49,7 @@ fn main() {
     let tod = RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
 
     let mp = MappingProblem::new(scan, tod);
-    let x = mp.solve_sky(30);
+    let x = mp.solve_sky();
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 

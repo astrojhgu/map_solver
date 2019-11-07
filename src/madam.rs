@@ -83,20 +83,18 @@ impl MappingProblem {
             a.dot(&x)
         };
 
-        let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
-
         let x = Array1::<f64>::zeros(b.len());
         //println!("{:?}", a);
         //println!("{:?}", b);
 
-        let mut ags = AGmresState::new(&A, x.view(), b.view(), &M, m_max, 1, 1, 0.4, 1e-6);
+        let mut ags = AGmresState::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, 1e-6);
         let mut cnt = 0;
         while !ags.converged {
             cnt += 1;
             if cnt % 100 == 0 {
                 println!("{}", ags.resid);
             }
-            ags.next(&A, &M);
+            ags.next(&A, None);
         }
         ags.x
     }
@@ -126,17 +124,15 @@ impl MappingProblem {
             sp_mul_a1(&a, x)
         };
 
-        let M = |x: ArrayView1<f64>| -> Array1<f64> { x.to_owned() };
-
         let x = Array1::<f64>::zeros(b.len());
-        let mut ags = AGmresState::new(&A, x.view(), b.view(), &M, m_max_sky, 1, 1, 0.4, 1e-6);
+        let mut ags = AGmresState::new(&A, x.view(), b.view(), None, m_max_sky, 1, 1, 0.4, 1e-6);
         let mut cnt = 0;
         while !ags.converged {
             cnt += 1;
             if cnt % 100 == 0 {
                 println!("{}", ags.resid);
             }
-            ags.next(&A, &M);
+            ags.next(&A, None);
         }
         ags.x
     }
