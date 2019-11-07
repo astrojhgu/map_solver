@@ -74,8 +74,9 @@ where
     let mut rfft = chfft::RFft1D::<T>::new(data.len());
     let mut s = rfft.forward(data);
     assert!(s.len() == kernel.len());
-    for i in 0..s.len() {
+    for i in 1..s.len() {
         s[i] /= kernel[i];
     }
+    
     rfft.backward(&s[..])
 }

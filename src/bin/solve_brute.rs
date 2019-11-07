@@ -51,6 +51,24 @@ fn main() {
                 .required(false)
                 .help("output resid"),
         )
+        .arg(
+            Arg::with_name("tol")
+                .short("l")
+                .long("tol")
+                .takes_value(true)
+                .required(false)
+                .value_name("TOL")
+                .help("tol, default value: 1e-12")
+        )
+        .arg(
+            Arg::with_name("m_max")
+                .short("a")
+                .long("mmax")
+                .takes_value(true)
+                .required(false)
+                .value_name("m_max")
+                .help("m_max param for the solver")
+        )
         .get_matches();
     //.arg(Arg::with_name("noise spectrum"))
 
@@ -60,8 +78,11 @@ fn main() {
     let noise =
         RawMM::<f64>::from_file(matches.value_of("noise covariance matrix").unwrap()).to_array1();
 
-    let mp = MappingProblem::new(scan, noise, tod);
-    let x = mp.solve_sky(30);
+    let tol=matches.value_of("tol").or(Some("1e-15")).unwrap().parse::<f64>().unwrap();
+    let m_max=matches.value_of("m_max").or(Some("50")).unwrap().parse::<usize>().unwrap();
+
+    let mp = MappingProblem::new(scan, noise, tod).with_tol(tol).with_m_max(m_max);
+    let x = mp.solve_sky();
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 
