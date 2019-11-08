@@ -1,4 +1,5 @@
 use crate::utils::deconv;
+use crate::utils::rfft;
 use linear_solver::minres::agmres::AGmresState;
 use linear_solver::minres::gmres::GmresState;
 use linear_solver::bicgstab::BiCGStabState;
@@ -48,8 +49,9 @@ impl MappingProblem {
     }
 
     pub fn solve_sky(&self, mut cb: Option<&mut dyn FnMut(&Array1<f64>)>) -> Array1<f64> {
-        let mut rfft = chfft::RFft1D::<f64>::new(self.cov_mat.len());
-        let fnoise = rfft.forward(self.cov_mat.as_slice().unwrap());
+        //let mut rfft = chfft::RFft1D::<f64>::new(self.cov_mat.len());
+        //let fnoise = rfft.forward(self.cov_mat.as_slice().unwrap());
+        let fnoise = rfft(self.cov_mat.as_slice().unwrap());
 
         let A = |x: ArrayView1<f64>| -> Array1<f64> {
             sp_mul_a1(
