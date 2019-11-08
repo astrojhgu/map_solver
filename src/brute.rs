@@ -86,7 +86,7 @@ impl MappingProblem {
         loop {
             cnt += 1;
             if cnt % 1 == 0 {
-                //println!("b={}", ags.resid);
+                println!("b={}", ags.resid);
                 println!("{}", ags.calc_resid(&A, &b).iter().map(|&x|{x.powi(2)}).sum::<f64>());
                 //println!("{}", delta);
             }
