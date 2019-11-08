@@ -44,7 +44,7 @@ where
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a=rfft(m);
-    let b=rfft(m);
+    let b=rfft(x);
     let c: Vec<_> = a.iter().zip(b.iter()).map(|(&a, &b)| a * b).collect();
     //fft.backward(&c)
     irfft(&c)
