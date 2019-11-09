@@ -7,22 +7,27 @@ pub struct MappingProblem {
     pub ptr_mat: CsMat<f64>,
     pub tod: Array1<f64>,
     pub tol: f64,
-    pub m_max: usize, 
+    pub m_max: usize,
 }
 
 impl MappingProblem {
     pub fn new(ptr_mat: CsMat<f64>, tod: Array1<f64>) -> MappingProblem {
         //circmat_x_mat(cm_pink.as_slice().unwrap(), F.view());
-        MappingProblem { ptr_mat, tod, tol: 1e-12, m_max: 30}
+        MappingProblem {
+            ptr_mat,
+            tod,
+            tol: 1e-12,
+            m_max: 30,
+        }
     }
 
-    pub fn with_tol(mut self, tol: f64)->MappingProblem{
-        self.tol=tol;
+    pub fn with_tol(mut self, tol: f64) -> MappingProblem {
+        self.tol = tol;
         self
     }
 
-    pub fn with_m_max(mut self, m_max: usize)->MappingProblem{
-        self.m_max=m_max;
+    pub fn with_m_max(mut self, m_max: usize) -> MappingProblem {
+        self.m_max = m_max;
         self
     }
 
@@ -38,7 +43,7 @@ impl MappingProblem {
 
         let x = Array1::<f64>::zeros(b.len());
         let tol = self.tol;
-        let m_max=self.m_max;
+        let m_max = self.m_max;
         let mut ags = AGmresState::<f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
 
         let mut cnt = 0;

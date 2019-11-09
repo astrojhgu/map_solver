@@ -50,7 +50,7 @@ fn main() {
                 .takes_value(true)
                 .value_name("noise covariance matrix")
                 .required(false)
-                .help("white noise covariance")
+                .help("white noise covariance"),
         )
         .arg(
             Arg::with_name("output resid")
@@ -68,7 +68,7 @@ fn main() {
                 .takes_value(true)
                 .required(false)
                 .value_name("TOL")
-                .help("tol, default value: 1e-12")
+                .help("tol, default value: 1e-12"),
         )
         .arg(
             Arg::with_name("m_max")
@@ -77,7 +77,7 @@ fn main() {
                 .takes_value(true)
                 .required(false)
                 .value_name("m_max")
-                .help("m_max param for the solver")
+                .help("m_max param for the solver"),
         )
         .arg(
             Arg::with_name("init")
@@ -86,7 +86,7 @@ fn main() {
                 .takes_value(true)
                 .required(false)
                 .value_name("initial guess")
-                .help("initial guess")
+                .help("initial guess"),
         )
         .get_matches();
     //.arg(Arg::with_name("noise spectrum"))
@@ -95,29 +95,46 @@ fn main() {
     let tod = RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
 
     let corr_noise =
-        RawMM::<f64>::from_file(matches.value_of("pink noise covariance matrix").unwrap()).to_array1();
-    
-    let white_cov = 
-        if matches.is_present("white noise covariance matrix"){
-            Some(RawMM::<f64>::from_file(matches.value_of("white noise covariance matrix").unwrap()).to_array1())
-        }else{
-            None
-        };
+        RawMM::<f64>::from_file(matches.value_of("pink noise covariance matrix").unwrap())
+            .to_array1();
 
-    let tol=matches.value_of("tol").or(Some("1e-15")).unwrap().parse::<f64>().unwrap();
-    let m_max=matches.value_of("m_max").or(Some("50")).unwrap().parse::<usize>().unwrap();
+    let white_cov = if matches.is_present("white noise covariance matrix") {
+        Some(
+            RawMM::<f64>::from_file(matches.value_of("white noise covariance matrix").unwrap())
+                .to_array1(),
+        )
+    } else {
+        None
+    };
 
-    let x = 
-        if matches.is_present("init"){
-            RawMM::<f64>::from_file(matches.value_of("init").unwrap()).to_array1()
-        }else{
-            let mp = NaiveSolver::new(scan.clone(), tod.clone()).with_tol(tol).with_m_max(m_max);
-            mp.solve_sky()
-        };
+    let tol = matches
+        .value_of("tol")
+        .or(Some("1e-15"))
+        .unwrap()
+        .parse::<f64>()
+        .unwrap();
+    let m_max = matches
+        .value_of("m_max")
+        .or(Some("50"))
+        .unwrap()
+        .parse::<usize>()
+        .unwrap();
 
-    let mp = BruteSolver::new(scan, corr_noise, white_cov, tod).with_tol(tol).with_m_max(m_max).with_init_value(x);
-    let x = mp.solve_sky(Some(&mut |x|{
-        RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());    
+    let x = if matches.is_present("init") {
+        RawMM::<f64>::from_file(matches.value_of("init").unwrap()).to_array1()
+    } else {
+        let mp = NaiveSolver::new(scan.clone(), tod.clone())
+            .with_tol(tol)
+            .with_m_max(m_max);
+        mp.solve_sky()
+    };
+
+    let mp = BruteSolver::new(scan, corr_noise, white_cov, tod)
+        .with_tol(tol)
+        .with_m_max(m_max)
+        .with_init_value(x);
+    let x = mp.solve_sky(Some(&mut |x| {
+        RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
     }));
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
