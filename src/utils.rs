@@ -131,7 +131,9 @@ where
     //let mut s = rfft.forward(data);
     assert!(s.len() == kernel.len());
     for i in 1..s.len() {
-        s[i] /= kernel[i];
+        if kernel[i].norm()!=T::zero(){
+            s[i] /= kernel[i];
+        }
     }
     
     irfft(&s[..])
