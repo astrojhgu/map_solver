@@ -1,10 +1,11 @@
+#![allow(unused_imports)]
 #![allow(clippy::many_single_char_names)]
 
 //use rustfft::{FFTnum, FFTplanner};
-use fftn::{fft, ifft, FFTnum, Complex};
+use fftn::{fft, ifft, Complex, FFTnum};
 use sprs::CsMat;
 //use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
-use ndarray::{Array1, Array2, ArrayView2, ArrayViewMut2, s};
+use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use num_traits::{Float, FloatConst, NumAssign, Zero};
 
 pub fn rfft<T>(indata: &[T]) -> Vec<Complex<T>>
@@ -38,15 +39,16 @@ where
     result.iter().map(|&x| x.re).collect()
 }
 
-pub fn rfft2<T>(indata: ArrayView2<T>)->Array2<Complex<T>>
-where T: FFTnum + From<u32> + Float,
+pub fn rfft2<T>(indata: ArrayView2<T>) -> Array2<Complex<T>>
+where
+    T: FFTnum + From<u32> + Float,
 {
-    let h=indata.nrows();
-    let w=indata.ncols();
+    let h = indata.nrows();
+    let w = indata.ncols();
     let mut cindata = Array2::<Complex<T>>::zeros((h, w));
-    for i in 0..h{
-        for j in 0..w{
-            cindata[(i, j)]=indata[(i, j)].into();
+    for i in 0..h {
+        for j in 0..w {
+            cindata[(i, j)] = indata[(i, j)].into();
         }
     }
 
@@ -55,24 +57,25 @@ where T: FFTnum + From<u32> + Float,
     result
 }
 
-pub fn irfft2<T>(indata: ArrayView2<Complex<T>>)->Array2<T>
-where T: FFTnum + From<u32> + Float + std::fmt::Debug,
+pub fn irfft2<T>(indata: ArrayView2<Complex<T>>) -> Array2<T>
+where
+    T: FFTnum + From<u32> + Float + std::fmt::Debug,
 {
-    let h=indata.nrows();
-    let w=indata.ncols();
-    let mut cindata=Array2::<Complex<T>>::zeros((h, w));
-    for i in 0..h{
-        for j in 0..w{
-            cindata[(i, j)]=indata[(i, j)];
+    let h = indata.nrows();
+    let w = indata.ncols();
+    let mut cindata = Array2::<Complex<T>>::zeros((h, w));
+    for i in 0..h {
+        for j in 0..w {
+            cindata[(i, j)] = indata[(i, j)];
         }
     }
 
-    let mut result=Array2::<Complex<T>>::zeros((h, w));
+    let mut result = Array2::<Complex<T>>::zeros((h, w));
     fftn::ifft2(&mut cindata.view_mut(), &mut result.view_mut());
-    let mut rresult=Array2::<T>::zeros((h, w));
-    for i in 0..h{
-        for j in 0..w{
-            rresult[(i, j)]=result[(i, j)].re
+    let mut rresult = Array2::<T>::zeros((h, w));
+    for i in 0..h {
+        for j in 0..w {
+            rresult[(i, j)] = result[(i, j)].re
         }
     }
     rresult
@@ -178,4 +181,48 @@ where
 
     irfft(&s[..])
     //rfft.backward(&s[..])
+}
+
+pub fn flatten_order_f<T>(data: ArrayView2<T>) -> Array1<T>
+where
+    T: Copy + Default,
+{
+    let mut result = Array1::default(data.nrows() * data.ncols());
+    for i in 0..data.nrows() {
+        for j in 0..data.ncols() {
+            let n = i * data.ncols() + j;
+            result[n] = data[(i, j)];
+        }
+    }
+    result
+}
+
+pub fn deflatten_order_f<T>(data: ArrayView1<T>, nrows: usize, ncols: usize) -> Array2<T>
+where
+    T: Copy + Default,
+{
+    let mut result = Array2::default((nrows, ncols));
+    for i in 0..nrows {
+        for j in 0..ncols {
+            let n = i * ncols + j;
+            result[(i, j)] = data[n];
+        }
+    }
+    result
+}
+
+pub fn deconv2<T>(data: ArrayView2<T>, kernel: ArrayView2<Complex<T>>) -> Array2<T>
+where
+    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+{
+    let mut s = rfft2(data);
+    assert!(s.shape() == kernel.shape());
+    for i in 0..s.nrows() {
+        for j in 0..s.ncols() {
+            if i != 0 && j != 0 {
+                s[(i, j)] /= kernel[(i, j)];
+            }
+        }
+    }
+    irfft2(s.view())
 }

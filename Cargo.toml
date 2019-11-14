@@ -22,4 +22,4 @@ git = 'https://github.com/astrojhgu/rust_fitsimg.git'
 
 
 [dependencies.fftn]
-git = 'https://github.com/astrojhgu/fftn.git'
+path = '../fftn'

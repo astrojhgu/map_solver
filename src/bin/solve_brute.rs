@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+#![allow(unused_imports)]
 
 use clap::{App, Arg};
 use linear_solver::io::RawMM;
@@ -42,15 +43,6 @@ fn main() {
                 .takes_value(true)
                 .help("noise covariance matrix")
                 .required(true),
-        )
-        .arg(
-            Arg::with_name("white noise covariance matrix")
-                .short("w")
-                .long("white")
-                .takes_value(true)
-                .value_name("noise covariance matrix")
-                .required(false)
-                .help("white noise covariance"),
         )
         .arg(
             Arg::with_name("output resid")
@@ -98,15 +90,6 @@ fn main() {
         RawMM::<f64>::from_file(matches.value_of("pink noise covariance matrix").unwrap())
             .to_array1();
 
-    let white_cov = if matches.is_present("white noise covariance matrix") {
-        Some(
-            RawMM::<f64>::from_file(matches.value_of("white noise covariance matrix").unwrap())
-                .to_array1(),
-        )
-    } else {
-        None
-    };
-
     let tol = matches
         .value_of("tol")
         .or(Some("1e-15"))
@@ -129,7 +112,7 @@ fn main() {
         mp.solve_sky()
     };
 
-    let mp = BruteSolver::new(scan, corr_noise, white_cov, tod)
+    let mp = BruteSolver::new(scan, corr_noise, tod)
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
