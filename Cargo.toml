@@ -11,7 +11,7 @@ ndarray = '0.13.0'
 num-traits = '0.2.8'
 num-complex = "0.2.3"
 sprs = '0.6.5'
-rustfft = "3.0.0"
+#rustfft = "3.0.0"
 clap = "2.33.0"
 #chfft = "0.3.2"
 linear_solver = {path='../linear_solver'}
@@ -19,3 +19,7 @@ linear_solver = {path='../linear_solver'}
 
 [dependencies.fitsimg]
 git = 'https://github.com/astrojhgu/rust_fitsimg.git'
+
+
+[dependencies.fftn]
+git = 'https://github.com/astrojhgu/fftn.git'

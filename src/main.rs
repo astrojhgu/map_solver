@@ -1,19 +1,25 @@
 #![allow(non_snake_case)]
 extern crate linear_solver;
 extern crate map_solver;
-
+use ndarray::array;
 use linear_solver::io::RawMM;
 use map_solver::madam::MappingProblem;
 fn main() {
-    let ptr_mat = RawMM::<f64>::from_file("A_no_conv.mtx").to_sparse();
-    let cm_white = RawMM::<f64>::from_file("nnt.mtx").to_array1();
-    let cm_pink = RawMM::<f64>::from_file("cm_pink.mtx").to_array1();
-    let F = RawMM::<f64>::from_file("F.mtx").to_array2();
+    let a=array![[1., 2., 3., 4., 5., 6., 7., 8.],
+    [2., 3., 4., 5., 6., 7., 8., 1.],
+    [3., 4., 5., 6., 7., 8., 1., 2.],
+    [4., 5., 6., 7., 8., 1., 2., 3.],
+    [5., 6., 7., 8., 1., 2., 3., 4.],
+    [6., 7., 8., 1., 2., 3., 4., 5.],
+    [7., 8., 1., 2., 3., 4., 5., 6.],
+    [8., 1., 2., 3., 4., 5., 6., 7.],
+];
 
-    let tod = RawMM::<f64>::from_file("tod.mtx").to_array1();
-    let mp = MappingProblem::new(ptr_mat, cm_white, cm_pink, F, tod);
-    //let a=mp.solve_a(3);
-    //println!("{:?}", a);
-    let x = mp.solve_sky(3, 30);
-    RawMM::from_array1(x.view()).to_file("solution.mtx");
+    println!("{:?}", a);
+
+    let b=map_solver::utils::rfft2(a.view());
+    println!("{:?}", b);
+
+    let c=map_solver::utils::irfft2(b.view());
+    println!("{:?}", c);
 }

@@ -1,48 +1,86 @@
 #![allow(clippy::many_single_char_names)]
 
-use num_complex::Complex;
-use rustfft::{FFTnum, FFTplanner};
+//use rustfft::{FFTnum, FFTplanner};
+use fftn::{fft, ifft, FFTnum, Complex};
 use sprs::CsMat;
 //use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
-use ndarray::{Array1, Array2, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView2, ArrayViewMut2, s};
 use num_traits::{Float, FloatConst, NumAssign, Zero};
 
 pub fn rfft<T>(indata: &[T]) -> Vec<Complex<T>>
 where
-    T: FFTnum + Float + std::fmt::Debug,
+    T: FFTnum + Float + From<u32> + std::fmt::Debug,
 {
-    let mut planner = FFTplanner::<T>::new(false);
-    let fft = planner.plan_fft(indata.len());
-    let mut cindata: Vec<_> = indata.iter().map(|&x| Complex::from(x)).collect();
+    let mut cindata: Vec<Complex<T>> = indata.iter().map(|&x| Complex::from(x)).collect();
     let mut result = vec![Complex::<T>::new(T::zero(), T::zero()); indata.len()];
-    fft.process(&mut cindata, &mut result);
+
+    fft(&mut cindata, &mut result);
     result.truncate(indata.len() / 2 + 1);
     result
 }
 
 pub fn irfft<T>(indata: &[Complex<T>]) -> Vec<T>
 where
-    T: rustfft::FFTnum + Float,
+    T: FFTnum + From<u32> + Float,
 {
     let n = (indata.len() - 1) * 2;
-    let mut planner = FFTplanner::<T>::new(true);
-    let fft = planner.plan_fft(n);
-    let mut cindata = Vec::with_capacity(n);
-    for x in indata {
-        cindata.push(x / T::from(n).unwrap());
+    let mut cindata = Vec::<Complex<T>>::with_capacity(n);
+    for &x in indata {
+        cindata.push(x);
     }
     for i in indata.len()..n {
-        cindata.push(indata[n - i].conj() / T::from(n).unwrap());
+        cindata.push(indata[n - i].conj());
     }
 
     let mut result = vec![Complex::<T>::from(T::zero()); n];
-    fft.process(&mut cindata, &mut result);
+    //fft.process(&mut cindata, &mut result);
+    ifft(&mut cindata, &mut result);
     result.iter().map(|&x| x.re).collect()
+}
+
+pub fn rfft2<T>(indata: ArrayView2<T>)->Array2<Complex<T>>
+where T: FFTnum + From<u32> + Float,
+{
+    let h=indata.nrows();
+    let w=indata.ncols();
+    let mut cindata = Array2::<Complex<T>>::zeros((h, w));
+    for i in 0..h{
+        for j in 0..w{
+            cindata[(i, j)]=indata[(i, j)].into();
+        }
+    }
+
+    let mut result = Array2::<Complex<T>>::zeros((h, w));
+    fftn::fft2(&mut cindata.view_mut(), &mut result.view_mut());
+    result
+}
+
+pub fn irfft2<T>(indata: ArrayView2<Complex<T>>)->Array2<T>
+where T: FFTnum + From<u32> + Float + std::fmt::Debug,
+{
+    let h=indata.nrows();
+    let w=indata.ncols();
+    let mut cindata=Array2::<Complex<T>>::zeros((h, w));
+    for i in 0..h{
+        for j in 0..w{
+            cindata[(i, j)]=indata[(i, j)];
+        }
+    }
+
+    let mut result=Array2::<Complex<T>>::zeros((h, w));
+    fftn::ifft2(&mut cindata.view_mut(), &mut result.view_mut());
+    let mut rresult=Array2::<T>::zeros((h, w));
+    for i in 0..h{
+        for j in 0..w{
+            rresult[(i, j)]=result[(i, j)].re
+        }
+    }
+    rresult
 }
 
 pub fn circmat_x_vec<T>(m: &[T], x: &[T]) -> Vec<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + Zero + FFTnum,
+    T: Float + FloatConst + NumAssign + std::fmt::Debug + Zero + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -54,7 +92,7 @@ where
 
 pub fn circmat_x_mat<T>(m: &[T], x: ArrayView2<T>) -> Array2<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum,
+    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -82,7 +120,7 @@ where
 
 pub fn circmat_inv_x_mat<T>(m: &[T], x: ArrayView2<T>) -> Array2<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum,
+    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -126,7 +164,7 @@ where
 
 pub fn deconv<T>(data: &[T], kernel: &[Complex<T>]) -> Vec<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum,
+    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut rfft = chfft::RFft1D::<T>::new(data.len());
     let mut s = rfft(data);
