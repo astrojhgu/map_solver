@@ -36,9 +36,9 @@ fn main() {
                 .help("output file name"),
         )
         .arg(
-            Arg::with_name("pink noise covariance matrix")
+            Arg::with_name("noise covariance matrix")
                 .short("n")
-                .long("pink")
+                .long("noise")
                 .value_name("noise covariance matrix")
                 .takes_value(true)
                 .help("noise covariance matrix")
@@ -87,7 +87,7 @@ fn main() {
     let tod = RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
 
     let corr_noise =
-        RawMM::<f64>::from_file(matches.value_of("pink noise covariance matrix").unwrap())
+        RawMM::<f64>::from_file(matches.value_of("noise covariance matrix").unwrap())
             .to_array1();
 
     let tol = matches
