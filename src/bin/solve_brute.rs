@@ -116,7 +116,7 @@ fn main() {
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
-    let x = mp.solve_sky(Some(&mut |x| {
+    let x = mp.solve_sky(10000, Some(&mut |x| {
         RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
     }));
 

@@ -51,7 +51,7 @@ impl MappingProblem {
         sp_mul_a1(&self.ptr_mat, x)
     }
 
-    pub fn solve_sky(&self, mut cb: Option<&mut dyn FnMut(&Array1<f64>)>) -> Array1<f64> {
+    pub fn solve_sky(&self, max_iter: usize, mut cb: Option<&mut dyn FnMut(&Array1<f64>)>) -> Array1<f64> {
         //let mut rfft = chfft::RFft1D::<f64>::new(self.noise_cov.len());
         //let fnoise = rfft.forward(self.noise_cov.as_slice().unwrap());
         let fnoise = rfft(self.noise_cov.as_slice().unwrap());
@@ -108,6 +108,9 @@ impl MappingProblem {
             ags.next(&A, None);
             if let Some(ref mut f) = cb {
                 f(&ags.x);
+            }
+            if cnt >=max_iter{
+                break;
             }
             //ags.next(&A);
             //ags.next(&A);
