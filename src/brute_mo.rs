@@ -19,7 +19,7 @@ pub struct MappingProblem {
     pub x: Option<Array1<f64>>,
 }
 
-pub fn batch_deconv(data: &[f64], k: &[Array1<num_complex::Complex<f64>>])->Array1<f64>{
+fn batch_deconv(data: &[f64], k: &[Array1<num_complex::Complex<f64>>])->Array1<f64>{
     let mut cnt=0;
     let mut result=Array1::zeros(data.len());
     for k1 in k.iter(){
