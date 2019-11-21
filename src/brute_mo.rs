@@ -81,8 +81,8 @@ impl MappingProblem {
     pub fn with_obs(
         mut self,
         ptr_mat: CsMat<f64>,
-        noise_cov: Array1<f64>,
         tod: Array1<f64>,
+        noise_cov: Array1<f64>,
     ) -> MappingProblem {
         if !self.ptr_mat.is_empty() {
             assert!(
@@ -98,7 +98,7 @@ impl MappingProblem {
         self
     }
 
-    pub fn add_obs(&mut self, ptr_mat: CsMat<f64>, noise_cov: Array1<f64>, tod: Array1<f64>) {
+    pub fn add_obs(&mut self, ptr_mat: CsMat<f64>, tod: Array1<f64>, noise_cov: Array1<f64>) {
         if !self.ptr_mat.is_empty() {
             assert!(
                 self.ptr_mat.last().unwrap().cols() == ptr_mat.cols(),
@@ -183,6 +183,7 @@ impl MappingProblem {
             .map(|x| Array1::from(rfft(x.as_slice().unwrap())))
             .collect();
 
+        
         let A: Box<dyn Fn(ArrayView1<f64>) -> Array1<f64>> =
             Box::new(|x: ArrayView1<f64>| -> Array1<f64> {
                 self.apply_ptr_mat_t(
@@ -213,9 +214,9 @@ impl MappingProblem {
         loop {
             cnt += 1;
             if cnt % 1 == 0 {
-                println!("b={}", ags.resid);
+                print!("resid={:e}, ", ags.resid);
                 println!(
-                    "{}",
+                    "{:e}",
                     ags.calc_resid(&A, &b)
                         .iter()
                         .map(|&x| { x.powi(2) })
@@ -224,6 +225,7 @@ impl MappingProblem {
                 //println!("{}", delta);
             }
             if ags.converged {
+                println!("Converged");
                 break;
             }
             ags.next(&A, None);
@@ -231,6 +233,7 @@ impl MappingProblem {
                 f(&ags.x);
             }
             if cnt >= max_iter {
+                println!("Warning: max iter reached, break");
                 break;
             }
             //ags.next(&A);
