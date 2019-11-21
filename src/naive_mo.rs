@@ -31,14 +31,51 @@ impl MappingProblem {
         }
     }
 
-    pub fn with_tol(mut self, tol: f64) -> MappingProblem {
+    pub fn empty()->MappingProblem{
+        MappingProblem{
+            ptr_mat: vec![],
+            tod: vec![],
+            tol: 1e-12,
+            m_max: 30,
+        }
+    }
+
+    pub fn with_obs(mut self, ptr_mat: CsMat<f64>, tod: Array1<f64>)->MappingProblem{
+        if !self.ptr_mat.is_empty(){
+            assert!(self.ptr_mat.last().unwrap().cols()==ptr_mat.cols(), "cols not eq");
+            assert!(ptr_mat.rows()==tod.len());
+        }
+        self.tod.push(tod);
+        self.ptr_mat.push(ptr_mat);
+        self
+    }
+
+    pub fn add_obs(&mut self, ptr_mat: CsMat<f64>, tod: Array1<f64>){
+        if !self.ptr_mat.is_empty(){
+            assert!(self.ptr_mat.last().unwrap().cols()==ptr_mat.cols(), "cols not eq");
+            assert!(ptr_mat.rows()==tod.len());
+        }
+        self.tod.push(tod);
+        self.ptr_mat.push(ptr_mat);
+    }
+
+
+        pub fn with_tol(mut self, tol: f64) -> MappingProblem {
         self.tol = tol;
         self
+    }
+
+    pub fn set_tol(&mut self, tol: f64){
+        self.tol=tol;
     }
 
     pub fn with_m_max(mut self, m_max: usize) -> MappingProblem {
         self.m_max = m_max;
         self
+    }
+
+    pub fn set_m_max(&mut self, m_max: usize){
+        self.m_max = m_max;
     }
 
     pub fn apply_ptr_mat(&self, x: ArrayView1<f64>) -> Array1<f64> {
