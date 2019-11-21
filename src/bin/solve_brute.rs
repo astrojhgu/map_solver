@@ -87,8 +87,7 @@ fn main() {
     let tod = RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
 
     let corr_noise =
-        RawMM::<f64>::from_file(matches.value_of("noise covariance matrix").unwrap())
-            .to_array1();
+        RawMM::<f64>::from_file(matches.value_of("noise covariance matrix").unwrap()).to_array1();
 
     let tol = matches
         .value_of("tol")
@@ -116,9 +115,12 @@ fn main() {
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
-    let x = mp.solve_sky(10000, Some(&mut |x| {
-        RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
-    }));
+    let x = mp.solve_sky(
+        10000,
+        Some(&mut |x| {
+            RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
+        }),
+    );
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 

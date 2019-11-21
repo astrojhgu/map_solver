@@ -89,19 +89,23 @@ fn main() {
         .get_matches();
     //.arg(Arg::with_name("noise spectrum"))
 
-    let scan:Vec<_> = matches.values_of("pointing matrices").unwrap().map(|x|{
-        RawMM::<f64>::from_file(x).to_sparse()
-    }).collect();
+    let scan: Vec<_> = matches
+        .values_of("pointing matrices")
+        .unwrap()
+        .map(|x| RawMM::<f64>::from_file(x).to_sparse())
+        .collect();
 
-    let tods:Vec<_> = matches.values_of("tod data").unwrap().map(|x|{
-        RawMM::<f64>::from_file(x).to_array1()
-    }).collect() ;
+    let tods: Vec<_> = matches
+        .values_of("tod data")
+        .unwrap()
+        .map(|x| RawMM::<f64>::from_file(x).to_array1())
+        .collect();
 
-    let corr_noise:Vec<_> =
-        matches.values_of("noise covariance matrices").unwrap().map(|x|{
-            RawMM::<f64>::from_file(x)
-            .to_array1()
-        }).collect();
+    let corr_noise: Vec<_> = matches
+        .values_of("noise covariance matrices")
+        .unwrap()
+        .map(|x| RawMM::<f64>::from_file(x).to_array1())
+        .collect();
 
     let tol = matches
         .value_of("tol")
@@ -130,9 +134,12 @@ fn main() {
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
-    let x = mp.solve_sky(10000, Some(&mut |x| {
-        RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
-    }));
+    let x = mp.solve_sky(
+        10000,
+        Some(&mut |x| {
+            RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
+        }),
+    );
 
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 
