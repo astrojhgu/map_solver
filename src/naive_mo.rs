@@ -12,6 +12,16 @@ pub struct MappingProblem {
 
 impl MappingProblem {
     pub fn new(ptr_mat: Vec<CsMat<f64>>, tod: Vec<Array1<f64>>) -> MappingProblem {
+        for (p, t) in ptr_mat.iter().zip(tod.iter()){
+            assert!(p.rows()==t.len(), "Nrows of ptr mat!=len(tod)");
+        }
+
+        assert!(ptr_mat.iter().map(|x|{
+            x.cols()
+        }).max()==ptr_mat.iter().map(|x|{
+            x.cols()
+        }).min(), "nrows not same");
+
         //circmat_x_mat(cm_pink.as_slice().unwrap(), F.view());
         MappingProblem {
             ptr_mat,
@@ -51,7 +61,6 @@ impl MappingProblem {
 
     pub fn apply_ptr_mat_t(&self, x: ArrayView1<f64>)->Array1<f64>{
         let mut result =  Array1::zeros(self.ptr_mat[0].cols());
-        println!("l:{:?}", self.ptr_mat[0].cols());
         let mut ccnt=0;
         for p in self.ptr_mat.iter() {
             result+=&sp_mul_a1(&p.transpose_view(), x.slice(s![ccnt..ccnt+p.rows()]));
