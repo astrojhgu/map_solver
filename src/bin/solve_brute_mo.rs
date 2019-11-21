@@ -9,9 +9,11 @@ use ndarray::Array1;
 fn main() {
     let matches = App::new("solve map making problem with noise model")
         .arg(
-            Arg::with_name("pointing matrix")
+            Arg::with_name("pointing matrices")
                 .short("p")
                 .long("pointing")
+                .use_delimiter(true)
+                .value_delimiter(",")
                 .value_name("pointing_matrix")
                 .takes_value(true)
                 .help("pointing matrix in matrix market format")
@@ -21,6 +23,8 @@ fn main() {
             Arg::with_name("tod data")
                 .short("t")
                 .long("tod")
+                .use_delimiter(true)
+                .value_delimiter(",")
                 .value_name("tod data")
                 .takes_value(true)
                 .help("tod data")
@@ -36,9 +40,11 @@ fn main() {
                 .help("output file name"),
         )
         .arg(
-            Arg::with_name("noise covariance matrix")
+            Arg::with_name("noise covariance matrices")
                 .short("n")
                 .long("noise")
+                .use_delimiter(true)
+                .value_delimiter(",")
                 .value_name("noise covariance matrix")
                 .takes_value(true)
                 .help("noise covariance matrix")
@@ -83,12 +89,19 @@ fn main() {
         .get_matches();
     //.arg(Arg::with_name("noise spectrum"))
 
-    let scan = RawMM::<f64>::from_file(matches.value_of("pointing matrix").unwrap()).to_sparse();
-    let tod = RawMM::<f64>::from_file(matches.value_of("tod data").unwrap()).to_array1();
+    let scan:Vec<_> = matches.values_of("pointing matrices").unwrap().map(|x|{
+        RawMM::<f64>::from_file(x).to_sparse()
+    }).collect();
 
-    let corr_noise =
-        RawMM::<f64>::from_file(matches.value_of("noise covariance matrix").unwrap())
-            .to_array1();
+    let tods:Vec<_> = matches.values_of("tod data").unwrap().map(|x|{
+        RawMM::<f64>::from_file(x).to_array1()
+    }).collect() ;
+
+    let corr_noise:Vec<_> =
+        matches.values_of("noise covariance matrices").unwrap().map(|x|{
+            RawMM::<f64>::from_file(x)
+            .to_array1()
+        }).collect();
 
     let tol = matches
         .value_of("tol")
@@ -106,13 +119,14 @@ fn main() {
     let x = if matches.is_present("init") {
         RawMM::<f64>::from_file(matches.value_of("init").unwrap()).to_array1()
     } else {
-        let mp = NaiveSolver::new(vec![scan.clone()], vec![tod.clone()])
+        println!("{}", scan[0].cols());
+        let mp = NaiveSolver::new(scan.clone(), tods.clone())
             .with_tol(tol)
             .with_m_max(m_max);
         mp.solve_sky()
     };
 
-    let mp = BruteSolver::new(vec![scan], vec![corr_noise], vec![tod])
+    let mp = BruteSolver::new(scan, corr_noise, tods)
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
@@ -123,7 +137,7 @@ fn main() {
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 
     if matches.is_present("output resid") {
-        let resid = &mp.tod[0] - &mp.apply_ptr_mat(x.view());
+        let resid = &mp.concated_tod() - &mp.apply_ptr_mat(x.view());
         RawMM::from_array1(resid.view()).to_file(matches.value_of("output resid").unwrap());
     }
 }

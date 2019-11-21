@@ -101,6 +101,11 @@ impl MappingProblem {
         result
     }
 
+    pub fn concated_tod(&self)->Array1<f64>{
+        let concated_tod:Vec<f64>=self.tod.iter().map(|x|{x.to_vec()}).flatten().collect();
+        Array1::from(concated_tod)
+    }
+
     pub fn solve_sky(&self, max_iter: usize, mut cb: Option<&mut dyn FnMut(&Array1<f64>)>) -> Array1<f64> {
         //let mut rfft = chfft::RFft1D::<f64>::new(self.noise_cov.len());
         //let fnoise = rfft.forward(self.noise_cov.as_slice().unwrap());
