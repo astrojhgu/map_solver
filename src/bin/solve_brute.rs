@@ -3,7 +3,7 @@
 
 use clap::{App, Arg};
 use linear_solver::io::RawMM;
-use map_solver::brute::MappingProblem as BruteSolver;
+use map_solver::brute_mo::MappingProblem as BruteSolver;
 use map_solver::naive::MappingProblem as NaiveSolver;
 use ndarray::Array1;
 fn main() {
@@ -112,7 +112,7 @@ fn main() {
         mp.solve_sky()
     };
 
-    let mp = BruteSolver::new(scan, corr_noise, tod)
+    let mp = BruteSolver::new(vec![scan], vec![corr_noise], vec![tod])
         .with_tol(tol)
         .with_m_max(m_max)
         .with_init_value(x);
@@ -123,7 +123,7 @@ fn main() {
     RawMM::from_array1(x.view()).to_file(matches.value_of("output").unwrap());
 
     if matches.is_present("output resid") {
-        let resid = &mp.tod - &mp.apply_ptr_mat(x.view());
+        let resid = &mp.tod[0] - &mp.apply_ptr_mat(x.view());
         RawMM::from_array1(resid.view()).to_file(matches.value_of("output resid").unwrap());
     }
 }
