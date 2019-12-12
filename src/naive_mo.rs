@@ -127,7 +127,7 @@ impl MappingProblem {
         let x = Array1::<f64>::zeros(b.len());
         let tol = self.tol;
         let m_max = self.m_max;
-        let mut ags = AGmresState::<f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
+        let mut ags = AGmresState::<f64,f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
 
         let mut cnt = 0;
         //while !ags.converged {
