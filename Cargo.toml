@@ -2,7 +2,7 @@
 clap = '2.33.0'
 ndarray = '0.13.0'
 num-complex = '0.2.3'
-num-traits = '0.2.9'
+num-traits = '0.2.10'
 sprs = '0.7.1'
 
 [dependencies.fftn]
