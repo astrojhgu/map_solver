@@ -134,7 +134,7 @@ impl MappingProblem {
         loop {
             cnt += 1;
             if cnt % 10 == 0 {
-                println!("a={}", ags.resid);
+                println!("a={} from naive", ags.resid);
                 //println!("{}", delta);
             }
             if ags.converged {
