@@ -4,6 +4,7 @@ use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
 use scorus::linear_space::traits::IndexableLinearSpace;
+use scorus::linear_space::traits::InnerProdSpace;
 use scorus::mcmc::hmc::naive::sample;
 use scorus::mcmc::hmc::naive::HmcParam;
 use scorus::linear_space::type_wrapper::LsVec;
@@ -53,6 +54,17 @@ fn main(){
     let mut q=LsVec(x);
     let mut lp_value=lp(&q);
     let mut lp_grad_value=lp_grad(&q);
+
+    let dx=LsVec(q.0.iter().map(|_|{
+        let f:f64=rng.sample(StandardNormal);
+        f*0.0001
+    }).collect::<Vec<_>>());
+
+    let diff=dx.dot(&lp_grad_value);
+    let q2=&q+&dx;
+    let lp_value2=lp(&q2);
+    println!("{} {}", diff, lp_value2-lp_value);
+    
     let mut accept_cnt=0;
     let mut epsilon=0.005;
     let param=HmcParam::quick_adj(0.7);
