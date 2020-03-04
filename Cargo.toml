@@ -4,6 +4,8 @@ ndarray = '0.13.0'
 num-complex = '0.2.4'
 num-traits = '0.2.11'
 sprs = '0.7.1'
+rand = '0.7.3'
+rand_distr='0.2.2'
 
 [dependencies.fftn]
 path = '../fftn'
@@ -13,6 +15,9 @@ git = 'https://github.com/astrojhgu/rust_fitsimg.git'
 
 [dependencies.linear_solver]
 path = '../linear_solver'
+
+[dependencies.scorus]
+path = '../../scorus'
 
 [package]
 authors = ['Gu Junhua <jhgu@nao.cas.cn>']
