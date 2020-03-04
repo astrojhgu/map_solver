@@ -73,8 +73,9 @@ fn main(){
         if accepted{
             accept_cnt+=1;
         }
+        let g=lp_grad_value.dot(&lp_grad_value);
         if i%10==0{
-            println!("{} {} {}", accept_cnt as f64/(i+1) as f64, epsilon, lp_value);
+            println!("{} {} {} {}", accept_cnt as f64/(i+1) as f64, epsilon, lp_value, g);
         }
     }
 }
