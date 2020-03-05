@@ -87,8 +87,7 @@ fn main(){
     let param=HmcParam::new(0.75, 0.05);
 
     for i in 0..10000 {
-        let accepted;
-        if i%100>50{//sample p
+        if i%2==1{//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
 
@@ -103,15 +102,17 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, 20, &param);
-            if accepted{
-                accept_cnt_p+=1;
+            for j in 0..100{
+                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, 20, &param);
+                if accepted{
+                    accept_cnt_p+=1;
+                }
+                cnt_p+=1;    
             }
-            cnt_p+=1;
 
             q=LsVec(sky.iter().chain(q1.iter()).cloned().collect::<Vec<_>>());
             
-            println!("{} {} {:.3} {:.6} {:.5}  {:?}",i, if accepted {1} else {0}, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
+            println!("{} {:.3} {:.6} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
 
         }else{
             let pps=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
@@ -128,17 +129,17 @@ fn main(){
             let mutlp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, 20, &param);
-            if accepted{
-                accept_cnt_s+=1;
+            for j in 0..100{
+                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, 20, &param);
+                if accepted{
+                    accept_cnt_s+=1;
+                }
+                cnt_s+=1;    
             }
-            cnt_s+=1;
-
-
             q=LsVec(q1.iter().chain(pps.iter()).cloned().collect::<Vec<_>>());
 
             let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
-            println!("{} {} {:.3} {:.6} {:.5} {:e}",i, if accepted {1} else {0}, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
+            println!("{} {:.3} {:.6} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
         }
     }
 }
