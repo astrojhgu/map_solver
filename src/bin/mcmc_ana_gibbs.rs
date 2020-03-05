@@ -84,9 +84,12 @@ fn main(){
     let mut cnt_p=0;
     let mut cnt_s=0;
     //let param=HmcParam::quick_adj(0.75);
-    let param=HmcParam::new(0.75, 0.05);
+    let mut param=HmcParam::new(0.75, 0.05);
 
     for i in 0..10000 {
+        if i>100{
+            param=HmcParam::slow_adj(0.75);
+        }
         if i%2==1{//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
