@@ -78,8 +78,9 @@ fn main(){
     let mut accept_cnt=0;
     let mut cnt=0;
     let mut epsilon=0.00003;
-    let param=HmcParam::quick_adj(0.75);
-    for i in 0..1000 {
+    //let param=HmcParam::quick_adj(0.75);
+    let param=HmcParam::new(0.75, 0.05);
+    for i in 0..10000 {
         let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 20, &param);
         if accepted{
             accept_cnt+=1;
