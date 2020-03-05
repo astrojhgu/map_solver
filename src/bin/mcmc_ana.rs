@@ -85,7 +85,7 @@ fn main(){
             accept_cnt+=1;
         }
         cnt+=1;
-        if i%1==0{
+        if i%100==0{
             let g=lp_grad_value.dot(&lp_grad_value);
             let pps:Vec<_>=q.0.iter().skip(nx).collect();
             let pps_g: Vec<_>=lp_grad_value.0.iter().skip(nx).collect();
@@ -110,7 +110,7 @@ fn main(){
             accept_cnt+=1;
         }
         cnt+=1;
-        if i%1==0{
+        if i%100==0{
             let g=lp_grad_value.dot(&lp_grad_value);
             let pps:Vec<_>=q.0.iter().skip(nx).collect();
             let pps_g: Vec<_>=lp_grad_value.0.iter().skip(nx).collect();
