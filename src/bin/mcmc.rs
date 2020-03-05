@@ -49,7 +49,7 @@ fn main(){
         LsVec(gx.iter().chain(gp.iter()).cloned().collect::<Vec<_>>())
     };
     
-    let psd=vec![10.; tod.len()/2+1];
+    let psd=vec![1.1; tod.len()/2+1];
     let x:Vec<_>=answer.iter().chain(psd.iter()).cloned().collect();
     let mut q=LsVec(x);
     let mut lp_value=lp(&q);
@@ -66,16 +66,53 @@ fn main(){
     println!("{} {}", diff, lp_value2-lp_value);
     
     let mut accept_cnt=0;
+    let mut cnt=0;
     let mut epsilon=0.005;
-    let param=HmcParam::quick_adj(0.7);
-    for i in 0..10000000 {
-        let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 2, &param);
+    let param=HmcParam::quick_adj(0.75);
+    for i in 0..1000 {
+        let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 20, &param);
         if accepted{
             accept_cnt+=1;
         }
-        let g=lp_grad_value.dot(&lp_grad_value);
-        if i%10==0{
-            println!("{} {} {} {}", accept_cnt as f64/(i+1) as f64, epsilon, lp_value, g);
+        cnt+=1;
+        if i%1==0{
+            let g=lp_grad_value.dot(&lp_grad_value);
+            let psd:Vec<_>=q.0.iter().skip(nx).collect();
+            let psd_g: Vec<_>=lp_grad_value.0.iter().skip(nx).collect();
+
+            let dx=LsVec(q.0.iter().map(|_|{
+                let f:f64=rng.sample(StandardNormal);
+                f*0.00001
+            }).collect::<Vec<_>>());
+            let diff=dx.dot(&lp_grad_value);
+            let q2=&q+&dx;
+            let lp_value2=lp(&q2);
+
+            println!("{} {:.3} {:.3} {:.5} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {} {} {} {}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, psd[0], psd[10], psd[20], psd_g[0], psd_g[10], psd_g[20], diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs());
+        }
+    }
+
+    let param=HmcParam::slow_adj(0.75);
+    for i in 0..10000000 {
+        let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 20, &param);
+        if accepted{
+            accept_cnt+=1;
+        }
+        cnt+=1;
+        if i%1==0{
+            let g=lp_grad_value.dot(&lp_grad_value);
+            let psd:Vec<_>=q.0.iter().skip(nx).collect();
+            let psd_g: Vec<_>=lp_grad_value.0.iter().skip(nx).collect();
+
+            let dx=LsVec(q.0.iter().map(|_|{
+                let f:f64=rng.sample(StandardNormal);
+                f*0.0001
+            }).collect::<Vec<_>>());
+            let diff=dx.dot(&lp_grad_value);
+            let q2=&q+&dx;
+            let lp_value2=lp(&q2);
+
+            println!("{} {:.3} {:.3} {:.5} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {:.3} {} {} {} {}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, psd[0], psd[10], psd[20], psd_g[0], psd_g[10], psd_g[20], diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs());
         }
     }
 }
