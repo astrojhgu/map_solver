@@ -4,24 +4,13 @@ extern crate linear_solver;
 extern crate map_solver;
 use linear_solver::io::RawMM;
 use map_solver::madam::MappingProblem;
+use map_solver::utils::ps_model;
 use ndarray::array;
 fn main() {
-    let a = array![
-        [1., 2., 3., 4., 5., 6., 7., 8.],
-        [2., 3., 4., 5., 6., 7., 8., 1.],
-        [3., 4., 5., 6., 7., 8., 1., 2.],
-        [4., 5., 6., 7., 8., 1., 2., 3.],
-        [5., 6., 7., 8., 1., 2., 3., 4.],
-        [6., 7., 8., 1., 2., 3., 4., 5.],
-        [7., 8., 1., 2., 3., 4., 5., 6.],
-        [8., 1., 2., 3., 4., 5., 6., 7.],
-    ];
+    let n=16;
+    for (i, f) in (0..(n+1)/2).chain(-n/2..0).enumerate(){
+        println!("{} {}", i, ps_model(f, 3.0_f64.sqrt(), 2., 2.0, -1.0, 0.0001, 0.0001));
+    }
 
-    println!("{:?}", a);
-
-    let b = map_solver::utils::rfft2(a.view());
-    println!("{:?}", b);
-
-    let c = map_solver::utils::irfft2(b.view());
-    println!("{:?}", c);
+    
 }

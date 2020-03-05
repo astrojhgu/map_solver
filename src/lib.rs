@@ -7,3 +7,4 @@ pub mod madam;
 pub mod naive;
 pub mod naive_mo;
 pub mod utils;
+pub mod mathematica;
