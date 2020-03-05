@@ -16,7 +16,7 @@ use num_complex::Complex64;
 use fftn::fft;
 use fftn::ifft;
 use num_traits::identities::Zero;
-use map_solver::utils::{circulant_matrix, dft_matrix, circulant_det, cov2psd, psd2cov_mat, ln_xsx, dhalf_ln_xsx_dx, dhalf_ln_xsx_dp, dhalf_lndet_dps, mvn_ln_pdf, mvn_ln_pdf_grad, ps_mirror, ps_mirror_t, ln_likelihood, ln_det_sigma, ln_likelihood_grad, logprob, logprob_grad};
+use map_solver::utils::{circulant_matrix, dft_matrix, circulant_det, cov2psd, psd2cov_mat, ln_xsx, dhalf_ln_xsx_dx, dhalf_ln_xsx_dp, dhalf_lndet_dps, mvn_ln_pdf, mvn_ln_pdf_grad, ps_mirror, ps_mirror_t, ln_likelihood, ln_det_sigma, ln_likelihood_grad, logprob_ana, logprob_ana_grad};
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
@@ -40,23 +40,21 @@ fn main(){
     let smooth_param=2.0;
     let fobj=|x: &LsVec<f64, Vec<f64>>|{
         let sky:Vec<_>=x.0.iter().take(nx).cloned().collect();
-        let psd:Vec<_>=x.0.iter().skip(nx).cloned().collect();
-        if psd.iter().filter(|&&p| p<=0.0).count()>0{
-            return 1e99;
-        }
-        -logprob(&sky, &psd, total_tod.as_slice().unwrap(), &ptr_mat, smooth_param)
+        let pps:Vec<_>=x.0.iter().skip(nx).cloned().collect();
+        
+        -logprob_ana(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat)
     };
 
     let grad=|x: &LsVec<f64, Vec<f64>>|{
         let sky:Vec<_>=x.0.iter().take(nx).cloned().collect();
-        let psd:Vec<_>=x.0.iter().skip(nx).map(|&p|{p.abs()}).collect();
-        let (gx, gp)=logprob_grad(&sky, &psd, total_tod.as_slice().unwrap(), &ptr_mat, smooth_param);
+        let pps:Vec<_>=x.0.iter().skip(nx).map(|&p|{p.abs()}).collect();
+        let (gx, gp)=logprob_ana_grad(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat);
         LsVec(gx.iter().chain(gp.iter()).map(|&x|{-x}).collect::<Vec<_>>())
     };
 
-    let psd=vec![3.0; tod.len()/2+1];
+    let pps=vec![0.1, 0.1, 5.0, 0.0];
 
-    let x:Vec<_>=answer.iter().chain(psd.iter()).cloned().collect();
+    let x:Vec<_>=answer.iter().chain(pps.iter()).cloned().collect();
     let mut x=LsVec(x);
     let mut g=grad(&x);
     let mut d=&g*(-1.0);
