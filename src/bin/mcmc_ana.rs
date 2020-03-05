@@ -3,6 +3,9 @@ extern crate map_solver;
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
+use std::fs::File;
+
+
 use scorus::linear_space::traits::IndexableLinearSpace;
 use scorus::linear_space::traits::InnerProdSpace;
 use scorus::mcmc::hmc::naive::sample;
@@ -23,7 +26,14 @@ fn main(){
 
     let ptr_mat=RawMM::<f64>::from_file("ptr_mat.mtx").to_sparse();
     let tod=RawMM::<f64>::from_file("cheat_vis.mtx").to_array1();
-    let answer=RawMM::<f64>::from_file("solution.mtx").to_array1();
+
+    let answer=if let Ok(_f)=File::open("solution.mtx"){
+        RawMM::<f64>::from_file("solution.mtx").to_array1()
+    }else{
+        println!("{}", ptr_mat.cols());
+        Array1::zeros(ptr_mat.cols())
+    };
+    
     
     let noise:Array1<f64>=tod.map(|_| {
         let f:f64=rng.sample(StandardNormal);
@@ -48,7 +58,7 @@ fn main(){
         let (gx, gp)=logprob_ana_grad(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat);
         LsVec(gx.iter().chain(gp.iter()).cloned().collect::<Vec<_>>())
     };
-    
+    //let answer=vec![0.0; answer.len()];
     let pps=vec![0.1, 0.1, 5.0, 0.0];
     let x:Vec<_>=answer.iter().chain(pps.iter()).cloned().collect();
     let mut q=LsVec(x);
@@ -67,7 +77,7 @@ fn main(){
     
     let mut accept_cnt=0;
     let mut cnt=0;
-    let mut epsilon=0.0003;
+    let mut epsilon=0.00003;
     let param=HmcParam::quick_adj(0.75);
     for i in 0..1000 {
         let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 20, &param);
@@ -87,8 +97,9 @@ fn main(){
             let diff=dx.dot(&lp_grad_value);
             let q2=&q+&dx;
             let lp_value2=lp(&q2);
+            let mean_value=q.0.iter().take(nx).sum::<f64>()/nx as f64;
 
-            println!("{} {} {:.3} {:.6} {:.5} {:.3} {:?} {:.3} {:.3} {:.3} {:.3}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, pps, diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs());
+            println!("{} {} {:.3} {:.6} {:.5} {:.3} {:?} {:.3} {:.3} {:.3} {:.3} {:e}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, pps, diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs(), mean_value);
         }
     }
 
@@ -112,7 +123,9 @@ fn main(){
             let q2=&q+&dx;
             let lp_value2=lp(&q2);
 
-            println!("{} {} {:.3} {:.3} {:.5} {:.3} {:?} {:.3} {:.3} {:.3} {:.3}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, pps, diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs());
+            let mean_value=q.0.iter().take(nx).sum::<f64>()/nx as f64;
+
+            println!("{} {} {:.3} {:.6} {:.5} {:.3} {:?} {:.3} {:.3} {:.3} {:.3} {:e}",i, if accepted {1} else {0}, accept_cnt as f64/cnt as f64, epsilon, lp_value, g, pps, diff, lp_value2-lp_value, diff/(lp_value2-lp_value), diff.abs()/lp_value.abs(), mean_value);
         }
     }
 }
