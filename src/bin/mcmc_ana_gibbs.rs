@@ -18,6 +18,7 @@ use fftn::fft;
 use fftn::ifft;
 use num_traits::identities::Zero;
 use map_solver::utils::{circulant_matrix, dft_matrix, circulant_det, cov2psd, psd2cov_mat, ln_xsx, dhalf_ln_xsx_dx, dhalf_ln_xsx_dp, dhalf_lndet_dps, mvn_ln_pdf, mvn_ln_pdf_grad, ps_mirror, ps_mirror_t, ln_likelihood, ln_det_sigma, ln_likelihood_grad, logprob_ana, logprob_ana_grad, FMAX};
+use map_solver::mcmc::Problem;
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
@@ -51,6 +52,7 @@ fn main(){
     let x:Vec<_>=answer.iter().chain(pps.iter()).cloned().collect();
     let mut q=LsVec(x);
 
+    let problem=Problem::new(total_tod.as_slice().unwrap(), &ptr_mat);//.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     
     let mut accept_cnt=0;
     let mut cnt=0;
@@ -74,14 +76,9 @@ fn main(){
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
 
-            let lp=|pps: &LsVec<f64, Vec<f64>>|{
-                logprob_ana(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat)
-            };
-        
-            let lp_grad=|pps: &LsVec<f64, Vec<f64>>|{
-                let (gx, gp)=logprob_ana_grad(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat);
-                LsVec(gp)
-            };
+            let lp=problem.get_logprob_psp(&q);
+            let lp_grad=problem.get_logprob_grad_psp(&q);
+
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
@@ -101,14 +98,9 @@ fn main(){
             let pps=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
-            let lp=|sky: &LsVec<f64, Vec<f64>>|{
-                logprob_ana(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat)
-            };
-        
-            let lp_grad=|sky: &LsVec<f64, Vec<f64>>|{
-                let (gx, gp)=logprob_ana_grad(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat);
-                LsVec(gx)
-            };
+            let lp=problem.get_logprob_sky(&q);
+            let lp_grad=problem.get_logprob_grad_sky(&q);
+
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
@@ -124,20 +116,9 @@ fn main(){
             let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
             println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
         }else{
-            let lp=|x: &LsVec<f64, Vec<f64>>|{
+            let lp=problem.get_logprob();
+            let lp_grad=problem.get_logprob_grad();
 
-                let sky:Vec<_>=x.0.iter().take(nx).cloned().collect();
-                let pps:Vec<_>=x.0.iter().skip(nx).cloned().collect();
-                logprob_ana(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat)
-            };
-        
-            let lp_grad=|x: &LsVec<f64, Vec<f64>>|{
-                let sky:Vec<_>=x.0.iter().take(nx).cloned().collect();
-                let pps:Vec<_>=x.0.iter().skip(nx).cloned().collect();
-                let (gx, gp)=logprob_ana_grad(&sky, &pps, total_tod.as_slice().unwrap(), &ptr_mat);
-                LsVec(gx.iter().chain(gp.iter()).cloned().collect::<Vec<_>>())
-            };
-        
             let mut lp_value=lp(&q);
             let mut lp_grad_value=lp_grad(&q);
 

@@ -12,6 +12,20 @@ pub struct Problem{
 }
 
 impl Problem{
+    pub fn new(tod: &[f64], ptr_mat: &CsMat<f64>)->Problem{
+        let tod:Vec<_>=tod.iter().cloned().collect();
+        Problem{
+            tod: vec![tod],
+            ptr_mat: vec![ptr_mat.clone()],
+        }
+    }
+
+    pub fn with_obs(mut self, tod: &[f64], ptr_mat: &CsMat<f64>)->Problem{
+        self.tod.push(tod.iter().cloned().collect());
+        self.ptr_mat.push(ptr_mat.clone());
+        self
+    }
+
     pub fn get_logprob<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a{
         let nx=self.ptr_mat[0].cols();
         move |p:&LsVec<f64, Vec<f64>>|{
