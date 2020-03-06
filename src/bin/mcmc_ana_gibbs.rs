@@ -38,12 +38,7 @@ fn main(){
     };
     
     
-    let noise:Array1<f64>=tod.map(|_| {
-        let f:f64=rng.sample(StandardNormal);
-        f
-    });
-
-    let total_tod=&tod+&noise;
+    
 
     let ntod=ptr_mat.rows();
     let nx=ptr_mat.cols();
@@ -52,7 +47,32 @@ fn main(){
     let x:Vec<_>=answer.iter().chain(pps.iter()).cloned().collect();
     let mut q=LsVec(x);
 
-    let problem=Problem::new(total_tod.as_slice().unwrap(), &ptr_mat);//.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
+    let noise:Array1<f64>=tod.map(|_| {
+        let f:f64=rng.sample(StandardNormal);
+        f
+    });
+    let total_tod=&tod+&noise;
+    let problem=Problem::new(total_tod.as_slice().unwrap(), &ptr_mat);
+    let noise:Array1<f64>=tod.map(|_| {
+        let f:f64=rng.sample(StandardNormal);
+        f
+    });
+    let total_tod=&tod+&noise;
+    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
+    let noise:Array1<f64>=tod.map(|_| {
+        let f:f64=rng.sample(StandardNormal);
+        f
+    });
+    let total_tod=&tod+&noise;
+    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
+    let noise:Array1<f64>=tod.map(|_| {
+        let f:f64=rng.sample(StandardNormal);
+        f
+    });
+    let total_tod=&tod+&noise;
+    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
+    
+    //.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     
     let mut accept_cnt=0;
     let mut cnt=0;
