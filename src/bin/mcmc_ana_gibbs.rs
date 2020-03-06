@@ -21,6 +21,8 @@ use map_solver::utils::{circulant_matrix, dft_matrix, circulant_det, cov2psd, ps
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
+const L:usize=10;
+
 fn main(){
     let mut rng=thread_rng();
 
@@ -84,7 +86,7 @@ fn main(){
             let mut lp_grad_value=lp_grad(&q1);
 
             for j in 0..100{
-                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, 20, &param);
+                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, L, &param);
                 if accepted{
                     accept_cnt_p+=1;
                 }
@@ -111,7 +113,7 @@ fn main(){
             let mut lp_grad_value=lp_grad(&q1);
 
             for j in 0..100{
-                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, 20, &param);
+                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
                 if accepted{
                     accept_cnt_s+=1;
                 }
@@ -140,7 +142,7 @@ fn main(){
             let mut lp_grad_value=lp_grad(&q);
 
             for i in 0..100{
-                let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, 20, &param);
+                let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, L, &param);
                 if accepted{
                     accept_cnt+=1;
                 }
