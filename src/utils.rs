@@ -13,6 +13,8 @@ use crate::mathematica::{arctan, powerf, poweri, log};
 
 const PS_W:f64=0.0001;
 const PS_E:f64=0.00001;
+pub const DT:f64=2.0;
+pub const FMAX:f64=0.5/DT;
 
 pub fn rfft<T>(indata: &[T]) -> Vec<Complex<T>>
 where
@@ -284,11 +286,11 @@ T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
     y1.into_iter().map(|x| x.re).fold(T::one(), |x,y| x*y)
 }
 
-pub fn ps_model<T>(i: isize, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
+pub fn ps_model<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let two=T::one()+T::one();
-    let x=T::from_isize(i.abs()).unwrap();
+    let x=f.abs();
     ((poweri(b,2) + poweri(a,2)*
          powerf((e + poweri(x,2))/
            (e + poweri(f0,2)),alpha/two))*
@@ -297,11 +299,11 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
     (T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
 }
 
-pub fn dps_model_da<T>(i: isize, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
+pub fn dps_model_da<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let two=T::one()+T::one();
-    let x=T::from_isize(i.abs()).unwrap();
+    let x=f.abs();
     
     (two*a*powerf((e + poweri(x,2))/
         (e + poweri(f0,2)),alpha/two)*
@@ -309,18 +311,18 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
    two*a*(T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
 }
 
-pub fn dps_model_db<T>(i: isize, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
+pub fn dps_model_db<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=T::from_isize(i.abs()).unwrap();
+    let x=f.abs();
     (two*b*(T::PI()/two + arctan((-f0 + x)/w)))/T::PI() + 
    two*b*(T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
 }
 
-pub fn dps_model_df0<T>(i: isize, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
+pub fn dps_model_df0<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=T::from_isize(i.abs()).unwrap();
+    let x=f.abs();
     
     (poweri(a,2) + poweri(b,2))/
     (T::PI()*w*(T::one() + poweri(-f0 + x,2)/poweri(w,2)))
@@ -335,10 +337,10 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     (poweri(e + poweri(f0,2),2)*T::PI())
 }
 
-pub fn dps_model_dalpha<T>(i: isize, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
+pub fn dps_model_dalpha<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=T::from_isize(i.abs()).unwrap();
+    let x=f.abs();
     
     (poweri(a,2)*powerf((e + poweri(x,2))/
        (e + poweri(f0,2)),alpha/two)*
@@ -472,8 +474,9 @@ pub fn logprob_ana(x: &[f64], pps: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f
     let f0=pps[2];
     let alpha=pps[3];
     let ntod=tod.len() as isize;
-    let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
-    if f0<1.0 || f0>(ntod/2) as f64 || alpha< -3.0 || alpha >1.0{
+    let fmin=1.0/(DT*ntod as f64);
+    let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
+    if f0<fmin || f0>fmin*(ntod/2) as f64 || alpha< -3.0 || alpha >1.0{
         return -std::f64::INFINITY;
     }
 
@@ -496,11 +499,12 @@ pub fn logprob_ana_grad(x: &[f64], pps: &[f64], tod: &[f64], ptr_mat: &CsMat<f64
     let alpha=pps[3];
 
     let ntod=tod.len() as isize;
-    let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
-    let dpsd_da=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_da(i, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
-    let dpsd_db=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_db(i, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
-    let dpsd_df0=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_df0(i, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
-    let dpsd_dalpha=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_dalpha(i, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
+    let fmin=1.0/(DT*ntod as f64);
+    let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
+    let dpsd_da=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_da(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
+    let dpsd_db=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_db(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
+    let dpsd_df0=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_df0(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
+    let dpsd_dalpha=LsVec((0..(ntod+1)/2).chain(-ntod/2..0).map(|i| dps_model_dalpha(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)).collect::<Vec<_>>());
     let (gx, gp)=ln_likelihood_grad(x, tod, &psd, ptr_mat);
     let gp=LsVec(gp);
     let g_ps_param=vec![
