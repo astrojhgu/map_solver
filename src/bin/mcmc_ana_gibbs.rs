@@ -102,7 +102,7 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            for j in 0..100{
+            for j in 0..10{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, L, &param);
                 if accepted{
                     accept_cnt_p+=1;
@@ -124,7 +124,7 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            for j in 0..100{
+            for j in 0..10{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
                 if accepted{
                     accept_cnt_s+=1;
@@ -142,7 +142,7 @@ fn main(){
             let mut lp_value=lp(&q);
             let mut lp_grad_value=lp_grad(&q);
 
-            for i in 0..100{
+            for i in 0..10{
                 let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, L, &param);
                 if accepted{
                     accept_cnt+=1;
