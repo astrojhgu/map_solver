@@ -44,8 +44,8 @@ fn main(){
     let ntod=ptr_mat.rows();
     let nx=ptr_mat.cols();
     //let answer=vec![0.0; answer.len()];
-    let pps=vec![0.1, 0.1, 1.0/30.0, 0.0];
-    let x:Vec<_>=answer.iter().chain(pps.iter()).cloned().collect();
+    let psp=vec![0.1, 0.1, 1.0/30.0, 0.0];
+    let x:Vec<_>=answer.iter().chain(psp.iter()).cloned().collect();
     let mut q=LsVec(x);
 
     let noise:Array1<f64>=tod.map(|_| {
@@ -53,7 +53,7 @@ fn main(){
         f
     });
 
-    let psp=vec![10.0, 1.0, 0.001, -1.0];
+    let psp=vec![20.0, 2.0, 0.001, -1.0];
     let mut problem=Problem::empty();
 
     for i in 0..4{
@@ -103,7 +103,7 @@ fn main(){
             println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
 
         }else if i%3==0{
-            let pps=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
+            let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
             let lp=problem.get_logprob_sky(&q);
@@ -119,7 +119,7 @@ fn main(){
                 }
                 cnt_s+=1;    
             }
-            q=LsVec(q1.iter().chain(pps.iter()).cloned().collect::<Vec<_>>());
+            q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
 
             let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
             println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
