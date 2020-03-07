@@ -78,67 +78,65 @@ where T: Float
     }
 }
 
+pub fn smooth_step<T>(x:T, w:T)->T
+where T: Float + FloatConst
+{
+    let two=T::one()+T::one();
+    (T::PI()/two + arctan((x)/w))/T::PI()
+}
+
+pub fn smooth_step_prime<T>(x:T, w: T)->T
+where T: Float + FloatConst{
+    w/(T::PI()*(w.powi(2)+x.powi(2)))
+}
+
 pub fn ps_model<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let two=T::one()+T::one();
-    let x=f.abs();
-    ((poweri(b,2) + poweri(a,2)*
-         powerf((e + poweri(x,2))/
-           (e + poweri(f0,2)),alpha/two))*
-      (T::PI()/two + arctan((-f0 + x)/w)))/T::PI() + 
-   (poweri(a,2) + poweri(b,2))*
-    (T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
+    let f=f.abs();
+    let a2=a.powi(2);
+    let b2=b.powi(2);
+    let y=((e + f.powi(2))/(e + f0.powi(2))).powf(alpha/two);
+    let s=smooth_step(f-f0, w);
+    (a2*y+b2)*s+(a2+b2)*(T::one()-s)
+
 }
 
 pub fn dps_model_da<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let two=T::one()+T::one();
-    let x=f.abs();
-    
-    (two*a*powerf((e + poweri(x,2))/
-        (e + poweri(f0,2)),alpha/two)*
-      (T::PI()/two + arctan((-f0 + x)/w)))/T::PI() + 
-   two*a*(T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
+    let f=f.abs();
+    let s=smooth_step(f-f0, w);
+    let y=((e + f.powi(2))/(e + f0.powi(2))).powf(alpha/two);
+    (T::one()+(y-T::one())*s)*two*a
 }
 
 pub fn dps_model_db<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=f.abs();
-    (two*b*(T::PI()/two + arctan((-f0 + x)/w)))/T::PI() + 
-   two*b*(T::one() - (T::PI()/two + arctan((-f0 + x)/w))/T::PI())
+    two*b
 }
 
 pub fn dps_model_df0<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=f.abs();
-    
-    (poweri(a,2) + poweri(b,2))/
-    (T::PI()*w*(T::one() + poweri(-f0 + x,2)/poweri(w,2)))
-    - (poweri(b,2) + 
-      poweri(a,2)*powerf((e + poweri(x,2))/
-         (e + poweri(f0,2)),alpha/two))/
-    (T::PI()*w*(T::one() + poweri(-f0 + x,2)/poweri(w,2)))
-    - (poweri(a,2)*alpha*f0*(e + poweri(x,2))*
-      powerf((e + poweri(x,2))/
-        (e + poweri(f0,2)),-T::one() + alpha/two)*
-      (T::PI()/two + arctan((-f0 + x)/w)))/
-    (poweri(e + poweri(f0,2),2)*T::PI())
+    let f=f.abs();
+    let s=smooth_step(f-f0, w);
+    let y=((e + f.powi(2))/(e + f0.powi(2))).powf(alpha/two);
+    let a2=a.powi(2);
+    let b2=b.powi(2);
+    a.powi(2)*(-((alpha*f0*y*smooth_step(f-f0,w))/(
+    e + f0.powi(2))) - (-T::one() + ((e + f.powi(2))/(e + f0.powi(2))).powf(alpha/two)) *smooth_step_prime(f-f0,w))
 }
 
 pub fn dps_model_dalpha<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let two=T::one()+T::one();
-    let x=f.abs();
-    
-    (poweri(a,2)*powerf((e + poweri(x,2))/
-       (e + poweri(f0,2)),alpha/two)*
-     (T::PI()/two + arctan((-f0 + x)/w))*
-     log((e + poweri(x,2))/(e + poweri(f0,2))))
-    /(two*T::PI())
+    let f=f.abs();
+    let y= ((e + f.powi(2))/(e + f0.powi(2)));
+    T::one()/two * a.powi(2)*y.powf(alpha/two)*y.ln()*smooth_step(f-f0,w)
 }
 
 
