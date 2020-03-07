@@ -24,7 +24,7 @@ use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
 const L:usize=1;
-const nsteps:usize=20;
+const nsteps:usize=5;
 
 fn main(){
     let mut rng=thread_rng();
@@ -82,7 +82,7 @@ fn main(){
         let mut cnt_s=0;
         let mut cnt=0;
         
-        if i%2==1{//sample p
+        {//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
 
@@ -101,10 +101,12 @@ fn main(){
             }
 
             q=LsVec(sky.iter().chain(q1.iter()).cloned().collect::<Vec<_>>());
-            
-            println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
+            if i%10==0{
+                println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
+            }
 
-        }else if i%2==0{
+        }
+        {
             let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
@@ -124,27 +126,9 @@ fn main(){
             q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
 
             let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
-            println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
-        }else{
-            let lp=problem.get_logprob();
-            let lp_grad=problem.get_logprob_grad();
-
-            let mut lp_value=lp(&q);
-            let mut lp_grad_value=lp_grad(&q);
-
-            
-            for i in 0..nsteps{
-                let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, L, &param);
-                if accepted{
-                    accept_cnt+=1;
-                }
-                cnt+=1;    
+            if i%10==0{
+                println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
             }
-            let mean_value=q.0.iter().take(nx).sum::<f64>()/nx as f64;
-            let ps_param=q.0.iter().skip(nx).collect::<Vec<_>>();
-
-            println!("{} {:.3} {:.8} {:.5} {:e} {:?}",i, accept_cnt as f64/cnt as f64, epsilon, lp_value,mean_value, ps_param);
         }
-
     }
 }
