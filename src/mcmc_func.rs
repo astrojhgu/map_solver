@@ -257,12 +257,12 @@ pub fn logprob(x: &[f64], psd: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, sp: f6
     ln_likelihood(x, tod, psd, ptr_mat)+s
 }
 
-pub fn logprob_ana(x: &[f64], pps: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f64{
-    assert_eq!(pps.len(), 4);
-    let a=pps[0];
-    let b=pps[1];
-    let f0=pps[2];
-    let alpha=pps[3];
+pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f64{
+    assert_eq!(psp.len(), 4);
+    let a=psp[0];
+    let b=psp[1];
+    let f0=psp[2];
+    let alpha=psp[3];
     let ntod=tod.len() as isize;
     let fmin=1.0/(DT*ntod as f64);
     let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
@@ -281,12 +281,12 @@ pub fn logprob_grad(x: &[f64], psd: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, s
     //(gx, gp1)
 }
 
-pub fn logprob_ana_grad(x: &[f64], pps: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->(Vec<f64>, Vec<f64>){
-    assert_eq!(pps.len(), 4);
-    let a=pps[0];
-    let b=pps[1];
-    let f0=pps[2];
-    let alpha=pps[3];
+pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->(Vec<f64>, Vec<f64>){
+    assert_eq!(psp.len(), 4);
+    let a=psp[0];
+    let b=psp[1];
+    let f0=psp[2];
+    let alpha=psp[3];
 
     let ntod=tod.len() as isize;
     let fmin=1.0/(DT*ntod as f64);

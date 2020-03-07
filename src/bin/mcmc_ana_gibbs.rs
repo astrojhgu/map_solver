@@ -22,7 +22,7 @@ use map_solver::mcmc::Problem;
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
-const L:usize=10;
+const L:usize=2;
 
 fn main(){
     let mut rng=thread_rng();
@@ -152,7 +152,7 @@ fn main(){
             let mean_value=q.0.iter().take(nx).sum::<f64>()/nx as f64;
             let ps_param=q.0.iter().skip(nx).collect::<Vec<_>>();
 
-            println!("{} {:.3} {:.8} {:.5} {:e} {:?}",i, accept_cnt_s as f64/cnt_s as f64, epsilon, lp_value,mean_value, ps_param);
+            println!("{} {:.3} {:.8} {:.5} {:e} {:?}",i, accept_cnt as f64/cnt as f64, epsilon, lp_value,mean_value, ps_param);
         }
 
     }
