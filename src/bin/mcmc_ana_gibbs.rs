@@ -67,12 +67,6 @@ fn main(){
     let mut epsilon=0.003;
     let mut epsilon_p=0.003;
     let mut epsilon_s=0.003;
-    let mut accept_cnt_p=0;
-    let mut accept_cnt_s=0;
-    let mut accept_cnt=0;
-    let mut cnt_p=0;
-    let mut cnt_s=0;
-    let mut cnt=0;
     //let param=HmcParam::quick_adj(0.75);
     let mut param=HmcParam::new(0.75, 0.05);
 
@@ -80,6 +74,13 @@ fn main(){
         if i>100{
             param=HmcParam::slow_adj(0.75);
         }
+        let mut accept_cnt_p=0;
+        let mut accept_cnt_s=0;
+        let mut accept_cnt=0;
+        let mut cnt_p=0;
+        let mut cnt_s=0;
+        let mut cnt=0;
+        
         if i%3==1{//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
@@ -130,6 +131,7 @@ fn main(){
             let mut lp_value=lp(&q);
             let mut lp_grad_value=lp_grad(&q);
 
+            
             for i in 0..20{
                 let accepted=sample(&lp, &lp_grad, &mut q, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon, L, &param);
                 if accepted{
