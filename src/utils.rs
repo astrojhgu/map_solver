@@ -85,6 +85,8 @@ where
     rresult
 }
 
+
+
 pub fn circmat_x_vec<T>(m: &[T], x: &[T]) -> Vec<T>
 where
     T: Float + FloatConst + NumAssign + std::fmt::Debug + Zero + FFTnum + From<u32>,

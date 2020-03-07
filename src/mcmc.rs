@@ -12,6 +12,13 @@ pub struct Problem{
 }
 
 impl Problem{
+    pub fn empty()->Problem{
+        Problem{
+            tod: Vec::new(),
+            ptr_mat: Vec::new()
+        }
+    }
+
     pub fn new(tod: &[f64], ptr_mat: &CsMat<f64>)->Problem{
         let tod:Vec<_>=tod.iter().cloned().collect();
         Problem{

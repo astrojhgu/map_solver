@@ -18,6 +18,7 @@ use fftn::fft;
 use fftn::ifft;
 use num_traits::identities::Zero;
 use map_solver::mcmc_func::{circulant_matrix, dft_matrix, circulant_det, cov2psd, psd2cov_mat, ln_xsx, dhalf_ln_xsx_dx, dhalf_ln_xsx_dp, dhalf_lndet_dps, mvn_ln_pdf, mvn_ln_pdf_grad, ps_mirror, ps_mirror_t, ln_likelihood, ln_det_sigma, ln_likelihood_grad, logprob_ana, logprob_ana_grad, FMAX};
+use map_solver::noise::gen_noise;
 use map_solver::mcmc::Problem;
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
@@ -51,28 +52,15 @@ fn main(){
         let f:f64=rng.sample(StandardNormal);
         f
     });
-    let total_tod=&tod+&noise;
-    let problem=Problem::new(total_tod.as_slice().unwrap(), &ptr_mat);
-    let noise:Array1<f64>=tod.map(|_| {
-        let f:f64=rng.sample(StandardNormal);
-        f
-    });
-    let total_tod=&tod+&noise;
-    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
-    let noise:Array1<f64>=tod.map(|_| {
-        let f:f64=rng.sample(StandardNormal);
-        f
-    });
-    let total_tod=&tod+&noise;
-    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
-    let noise:Array1<f64>=tod.map(|_| {
-        let f:f64=rng.sample(StandardNormal);
-        f
-    });
-    let total_tod=&tod+&noise;
-    let problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
-    
-    //.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
+
+    let psp=vec![10.0, 1.0, 0.001, -1.0];
+    let mut problem=Problem::empty();
+
+    for i in 0..4{
+        let noise=Array1::from(gen_noise(ntod, &psp, &mut rng, map_solver::mcmc_func::DT));
+        let total_tod=&tod+&noise;
+        problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);    
+    }
     
     let mut accept_cnt=0;
     let mut cnt=0;
