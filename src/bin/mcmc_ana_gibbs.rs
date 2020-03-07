@@ -23,7 +23,7 @@ use map_solver::mcmc::Problem;
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
-const L:usize=10;
+const L:usize=2;
 
 fn main(){
     let mut rng=thread_rng();
@@ -91,7 +91,7 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            for j in 0..10{
+            for j in 0..20{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, L, &param);
                 if accepted{
                     accept_cnt_p+=1;
@@ -113,7 +113,7 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
 
-            for j in 0..10{
+            for j in 0..20{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
                 if accepted{
                     accept_cnt_s+=1;
