@@ -81,7 +81,7 @@ fn main(){
         let mut cnt_s=0;
         let mut cnt=0;
         
-        if i%3==1{//sample p
+        if i%2==1{//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
 
@@ -103,7 +103,7 @@ fn main(){
             
             println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
 
-        }else if i%3==0{
+        }else if i%2==0{
             let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
