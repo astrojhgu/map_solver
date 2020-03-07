@@ -6,9 +6,9 @@ extern crate map_solver;
 use scorus::linear_space::type_wrapper::LsVec;
 use linear_solver::io::RawMM;
 use map_solver::madam::MappingProblem;
-use map_solver::utils::ps_model;
+use map_solver::mcmc_func::ps_model;
 use ndarray::array;
-use map_solver::utils::DT;
+use map_solver::mcmc_func::DT;
 use map_solver::mcmc::Problem;
 
 fn main() {

@@ -1,8 +1,8 @@
-use crate::utils;
+use crate::{utils, mcmc_func};
 use sprs::CsMat;
 use ndarray::{Array1};
 use std::ops::{Add, Sub, Mul};
-use utils::{logprob_ana, logprob_ana_grad};
+use mcmc_func::{logprob_ana, logprob_ana_grad};
 use scorus::linear_space::type_wrapper::LsVec;
 use scorus::linear_space::traits::InnerProdSpace;
 
