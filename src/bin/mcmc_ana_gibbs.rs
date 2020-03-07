@@ -24,7 +24,7 @@ use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
 const L:usize=1;
-const nsteps:usize=5;
+const nsteps:usize=20;
 
 fn main(){
     let mut rng=thread_rng();
