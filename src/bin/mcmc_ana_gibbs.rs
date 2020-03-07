@@ -71,7 +71,7 @@ fn main(){
     //let param=HmcParam::quick_adj(0.75);
     let mut param=HmcParam::new(0.75, 0.05);
 
-    for i in 0..100000 {
+    for i in 0..1000000 {
         if i>1000{
             param=HmcParam::slow_adj(0.75);
         }
