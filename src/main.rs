@@ -30,9 +30,9 @@ fn main() {
     
 
     let psp=vec![2.0, 0.1, 0.001, -0.5];
-    let noise=gen_noise(ntod, &psp, &mut rng, DT);
+    //let noise=gen_noise(ntod, &psp, &mut rng, DT);
 
-    for x in noise{
-        println!("{}", x);
-    }
+    //for x in noise{
+    //    println!("{}", x);
+    //}
 }

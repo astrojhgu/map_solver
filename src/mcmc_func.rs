@@ -100,7 +100,6 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
     let y=((e + f.powi(2))/(e + f0.powi(2))).powf(alpha/two);
     let s=smooth_step(f-f0, w);
     (a2*y+b2)*s+(a2+b2)*(T::one()-s)
-
 }
 
 pub fn dps_model_da<T>(f: T, a: T, b: T, f0: T, alpha: T, w: T, e: T)->T
