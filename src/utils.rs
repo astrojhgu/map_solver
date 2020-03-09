@@ -193,29 +193,15 @@ pub fn flatten_order_f<T>(data: ArrayView2<T>) -> Array1<T>
 where
     T: Copy + Default,
 {
-    let mut result = Array1::default(data.nrows() * data.ncols());
-    for i in 0..data.nrows() {
-        for j in 0..data.ncols() {
-            let n = i * data.ncols() + j;
-            result[n] = data[(i, j)];
-        }
-    }
-    result
+    let n=data.ncols()*data.rows();
+    data.t().as_standard_layout().into_owned().into_shape((n,)).unwrap()
 }
 
 pub fn deflatten_order_f<T>(data: ArrayView1<T>, nrows: usize, ncols: usize) -> Array2<T>
 where
     T: Copy + Default,
 {
-    let mut result = Array2::default((nrows, ncols));
-    for i in 0..nrows {
-        for j in 0..ncols {
-            let n = i * ncols + j;
-            result[(i, j)] = data[n];
-        }
-    }
-    result
-}
+    data.into_shape((ncols,nrows)).unwrap().t().to_owned().as_standard_layout().into_owned()}
 
 pub fn deconv2<T>(data: ArrayView2<T>, kernel: ArrayView2<Complex<T>>) -> Array2<T>
 where

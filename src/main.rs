@@ -16,23 +16,15 @@ use rand_distr::StandardNormal;
 use rand::distributions::Distribution;
 use fftn::ifft;
 use map_solver::noise::gen_noise;
-
-
+use map_solver::utils::flatten_order_f;
+use map_solver::utils::deflatten_order_f;
 
 fn main() {
+    let mx=array![1,2,3,4,5,6];
+    println!("{}", mx);
+    println!("{}",deflatten_order_f(mx.view(), 2, 3));
+    let mx1=flatten_order_f(deflatten_order_f(mx.view(), 2, 3).view());
+    let mx=array![[1,2,3],[4,5,6]];
 
-    let mut rng=thread_rng();
-
-    let ptr_mat=RawMM::<f64>::from_file("ptr_mat.mtx").to_sparse();
-    let tod=RawMM::<f64>::from_file("cheat_vis.mtx").to_array1();
-    let ntod=tod.len();
-
-    
-
-    let psp=vec![2.0, 0.1, 0.001, -0.5];
-    //let noise=gen_noise(ntod, &psp, &mut rng, DT);
-
-    //for x in noise{
-    //    println!("{}", x);
-    //}
+    println!("{}", mx1);
 }

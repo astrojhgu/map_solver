@@ -162,7 +162,7 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 pub fn mvn_ln_pdf<T>(x: &[T], psd: &[T])->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
-    
+    assert_eq!(x.len(), psd.len());
     let two=T::one()+T::one();
     let n=x.len();
 
@@ -216,9 +216,9 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 pub fn ln_likelihood(x: &[f64], y: &[f64], psd: &[f64], ptr_mat: &CsMat<f64>)->f64
 {
     let nout=y.len();
-    let ps1=ps_mirror(psd, nout);
+    //let ps1=ps_mirror(psd, nout);
     let noise=&ArrayView1::from(y)-&sp_mul_a1(&ptr_mat, ArrayView1::from(x));
-    mvn_ln_pdf(noise.as_slice().unwrap(), &ps1)
+    mvn_ln_pdf(noise.as_slice().unwrap(), &psd)
 }
 
 pub fn smoothness(psd: &[f64], k:f64)->f64
@@ -251,11 +251,6 @@ pub fn d_smoothness(y: &[f64], k: f64)->Vec<f64>{
     result
 }
 
-pub fn logprob(x: &[f64], psd: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, sp: f64)->f64{
-    let s=smoothness(psd, sp);
-    ln_likelihood(x, tod, psd, ptr_mat)+s
-}
-
 pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f64{
     assert_eq!(psp.len(), 4);
     let a=psp[0];
@@ -270,14 +265,6 @@ pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f
     }
 
     ln_likelihood(x, tod, &psd, ptr_mat)
-}
-
-pub fn logprob_grad(x: &[f64], psd: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, sp: f64)->(Vec<f64>, Vec<f64>){
-    let (gx,gp1)=ln_likelihood_grad(x, tod, psd, ptr_mat);
-    let gp2=d_smoothness(psd, sp);
-    let gp:Vec<_>=gp1.iter().zip(gp2.iter()).map(|(a,b)| a+b).collect();
-    (gx, gp)
-    //(gx, gp1)
 }
 
 pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->(Vec<f64>, Vec<f64>){
@@ -308,11 +295,10 @@ pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64
 pub fn ln_likelihood_grad(x: &[f64], y: &[f64], psd: &[f64], ptr_mat: &CsMat<f64>)->(Vec<f64>, Vec<f64>){
     let nout=y.len();
     let noise=&ArrayView1::from(y)-&sp_mul_a1(&ptr_mat, ArrayView1::from(x));
-    let ps1=ps_mirror(psd, nout);
-    let (dlnpdn, dlnpdp)=mvn_ln_pdf_grad(noise.as_slice().unwrap(), &ps1);
+    let (dlnpdn, dlnpdp)=mvn_ln_pdf_grad(noise.as_slice().unwrap(), &psd);
 
     let dlnpdx=(-sp_mul_a1(&ptr_mat.transpose_view(), ArrayView1::from(&dlnpdn))).to_vec();
-    let dlnpdp=ps_mirror_t(&dlnpdp, psd.len());
+    //let dlnpdp=ps_mirror_t(&dlnpdp, psd.len());
     (dlnpdx, dlnpdp)
 }
 
@@ -342,28 +328,6 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
     circulant_matrix(&psd2cov(x))
 }
 
-pub fn ps_mirror<T>(x: &[T], n_out: usize)->Vec<T>
-where T:Copy
-{
-    let mut result=vec![x[0]; n_out];
-    for i in 0..x.len(){
-        result[i]=x[i];
-    }
-    for i in 0..(result.len()-x.len()){
-        result[n_out-i-1]=x[1+i];
-    }
-    result
-}
-
-pub fn ps_mirror_t<T>(x: &[T], n_out:usize)->Vec<T>
-where T: Float
-{
-    let mut result:Vec<T>=x.iter().cloned().take(n_out).collect();
-    for i in 0..(x.len()-result.len()){
-        result[i+1]=result[i+1]+x[x.len()-i-1];
-    }
-    result
-}
 
 #[cfg(test)]
 mod tests {
@@ -373,17 +337,6 @@ mod tests {
 
     fn get_psd()->Vec<f64>{
         vec![1.0, 0.5, 0.3, 0.2, 0.2, 0.3, 0.5]
-    }
-
-    #[test]
-    fn test_xsx() {
-        let psd=get_psd();
-        let n=psd.len();
-        let cov_mat=super::psd2cov_mat(&psd);
-        let mut x=ndarray::Array::from(vec![1.0; n]);
-        let brute_force_answer=x.dot(&cov_mat.dot(&x));
-        let smart_answer=super::ln_xsx(x.as_slice().unwrap(), &psd);
-        assert!((smart_answer-brute_force_answer).abs()<1e-10);
     }
 
     #[test]
@@ -485,7 +438,7 @@ mod tests {
         let dlp_dp2=super::dhalf_lndet_dps(&psd)
         .into_iter().map(|x|{-x}).collect::<Vec<_>>();
         for i in 0..n{
-            println!("{} {} {} {}", grad1.0[i], grad1.1[i], dlp_dx[i], dlp_dp1[i]+dlp_dp2[i]);
+            //println!("{} {} {} {}", grad1.0[i], grad1.1[i], dlp_dx[i], dlp_dp1[i]+dlp_dp2[i]);
             assert!((grad1.0[i]-dlp_dx[i]).abs()<1e-5);
             assert!((grad1.1[i]-dlp_dp1[i]-dlp_dp2[i]).abs()<1e-5);
         }
@@ -515,12 +468,12 @@ mod tests {
         let lp2=super::mvn_ln_pdf(x.as_slice().unwrap(), &psd1);
 
 
-        println!("a: {} {}", (lp2a-lp1a)/delta, super::dhalf_ln_xsx_dp(x.as_slice().unwrap(), &psd)[m]);
+        //println!("a: {} {}", (lp2a-lp1a)/delta, super::dhalf_ln_xsx_dp(x.as_slice().unwrap(), &psd)[m]);
         
-        println!("b: {} {}", (lp2b-lp1b)/delta, super::dhalf_lndet_dps(&psd)[m]);
+        //println!("b: {} {}", (lp2b-lp1b)/delta, super::dhalf_lndet_dps(&psd)[m]);
 
         let (gx, gp)=super::mvn_ln_pdf_grad(x.as_slice().unwrap(), &psd);
-        println!("c: {} {}", (lp2-lp1)/delta, gp[m]);
+        //println!("c: {} {}", (lp2-lp1)/delta, gp[m]);
         assert!(((lp2-lp1)/delta-gp[m]).abs()<1e-5);
     }
 
@@ -545,10 +498,10 @@ mod tests {
         let lp2=super::mvn_ln_pdf(x1.as_slice().unwrap(), &psd);
 
 
-        println!("a1: {} {}", (lp2a-lp1a)/delta, super::dhalf_ln_xsx_dx(x.as_slice().unwrap(), &psd)[m]);
+        //println!("a1: {} {}", (lp2a-lp1a)/delta, super::dhalf_ln_xsx_dx(x.as_slice().unwrap(), &psd)[m]);
         
         let (gx, gp)=super::mvn_ln_pdf_grad(x.as_slice().unwrap(), &psd);
-        println!("c1: {} {}", (lp2-lp1)/delta, gx[m]);
+        //println!("c1: {} {}", (lp2-lp1)/delta, gx[m]);
         assert!(((lp2-lp1)/delta-gx[m]).abs()<1e-6);
     }
 
@@ -580,7 +533,7 @@ mod tests {
             let (gx, gp)=super::mvn_ln_pdf_grad(noise.as_slice().unwrap(), &psd);
             let diff=ndarray::ArrayView1::from(&gx).dot(&dx)+ndarray::ArrayView1::from(&gp).dot(&ndarray::ArrayView1::from(&dp));
             assert!(lp2-lp1-diff<1e-7);
-            println!("{} {} {}",lp2-lp1, diff,  lp2-lp1-diff);
+            //println!("{} {} {}",lp2-lp1, diff,  lp2-lp1-diff);
             //println!("{} {} {}", (lp2-lp1)/dx, gx[m], ((lp2-lp1)/dx-gx[m]).abs());
         }
     }
