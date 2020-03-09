@@ -315,7 +315,7 @@ pub fn ln_likelihood(x: &[f64], y: &[f64], psd: ArrayView2<f64>, ptr_mat: &CsMat
 
 
 pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, n_t: usize, n_ch: usize)->f64{
-    assert_eq!(psp.len(), 7);
+    assert_eq!(psp.len(), 6);
     let a_t=psp[0];
     let ft_0=psp[1];
     let alpha_t=psp[2];
@@ -325,18 +325,17 @@ pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, n_
 
     let b=psp[5];
 
-    let ntod=tod.len() as isize;
-    let ft_min=1.0/(DT*ntod as f64);
+    let ft_min=1.0/(DT*n_t as f64);
     let fch_min=1.0/n_ch as f64;
-    let ft:Vec<_>=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| i as f64 * ft_min).collect();
+    let ft:Vec<_>=(0..(n_t as isize+1)/2).chain(-(n_t as isize)/2..0).map(|i| i as f64 * ft_min).collect();
     let fch:Vec<_>=(0..(n_ch as isize+1)/2).chain(-(n_ch as isize)/2..0).map(|i| i as f64 * fch_min).collect();
     let psd=ps_model(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
 
-    if ft_0<ft_min || ft_0>ft_min*(ntod/2) as f64 || alpha_t< -3.0 || alpha_t >1.0{
+    if ft_0>ft_min*(n_t/2) as f64 || alpha_t< -3.0 || alpha_t >1.0{
         return -std::f64::INFINITY;
     }
 
-    if fch_0<ft_min || fch_0>ft_min*(n_ch/2) as f64 || alpha_ch< -3.0 || alpha_ch >1.0{
+    if fch_0>fch_min*(n_ch/2) as f64 || alpha_ch< -3.0 || alpha_ch >1.0{
         return -std::f64::INFINITY;
     }
 
@@ -345,7 +344,7 @@ pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, n_
 
 
 pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>, n_t: usize, n_ch: usize)->(Vec<f64>, Vec<f64>){
-    assert_eq!(psp.len(), 7);
+    assert_eq!(psp.len(), 6);
     let a_t=psp[0];
     let ft_0=psp[1];
     let alpha_t=psp[2];
@@ -355,16 +354,15 @@ pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64
 
     let b=psp[5];
 
-    let ntod=tod.len() as isize;
-    let ft_min=1.0/(DT*ntod as f64);
+    
+    let ft_min=1.0/(DT*n_t as f64);
     let fch_min=1.0/n_ch as f64;
-    let ft:Vec<_>=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| i as f64 * ft_min).collect();
+    let ft:Vec<_>=(0..(n_t as isize+1)/2).chain(-(n_t as isize)/2..0).map(|i| i as f64 * ft_min).collect();
     let fch:Vec<_>=(0..(n_ch as isize+1)/2).chain(-(n_ch as isize)/2..0).map(|i| i as f64 * fch_min).collect();
     let psd=ps_model(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
 
     let dpsd_da_t=dps_model_da_t(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
-    let dpsd_da_ch=dps_model_da_ch(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
-
+    
     let dpsd_df0_t=dps_model_df0_t(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
     let dpsd_df0_ch=dps_model_df0_ch(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
 
@@ -373,13 +371,14 @@ pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64
 
     let dpsd_db=dps_model_db(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
 
+    //println!("aaa {} {}", psd.nrows(), psd.ncols());
+
     let (gx, gp)=ln_likelihood_grad(x, tod, psd.view(), ptr_mat, n_t, n_ch);
     let gp=LsVec(gp);
     let g_ps_param=vec![
         gp.dot(&LsVec(flatten_order_f(dpsd_da_t.view()).to_vec())),
         gp.dot(&LsVec(flatten_order_f(dpsd_df0_t.view()).to_vec())),
         gp.dot(&LsVec(flatten_order_f(dpsd_dalpha_t.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_da_ch.view()).to_vec())),
         gp.dot(&LsVec(flatten_order_f(dpsd_df0_ch.view()).to_vec())),
         gp.dot(&LsVec(flatten_order_f(dpsd_dalpha_ch.view()).to_vec())),
         gp.dot(&LsVec(flatten_order_f(dpsd_db.view()).to_vec())),
@@ -391,6 +390,8 @@ pub fn ln_likelihood_grad(x: &[f64], y: &[f64], psd: ArrayView2<f64>, ptr_mat: &
     let noise=&ArrayView1::from(y)-&sp_mul_a1(&ptr_mat, ArrayView1::from(x));
 
     let noise_2d=deflatten_order_f(noise.view(), n_t, n_ch);
+    //println!("{} {}", noise_2d.nrows(), noise_2d.ncols());
+    //println!("{} {}", psd.nrows(), psd.ncols());
 
     let (dlnpdn, dlnpdp)=mvn_ln_pdf_grad(noise_2d.view(), psd);
 
@@ -509,7 +510,7 @@ mod tests {
         let psd=super::deflatten_order_f(ndarray::ArrayView1::from(&psd), n_t, n_ch);
         RawMM::from_array2(psd.view()).to_file("psd.mtx");
         let smart_answer=super::ln_xsx(x.view(), psd.view());
-        println!("{} {}", smart_answer, brute_force_answer);
+        //println!("{} {}", smart_answer, brute_force_answer);
         assert!((smart_answer-brute_force_answer).abs()<1e-3);
     }
 

@@ -3,14 +3,14 @@ extern crate map_solver;
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
-use ndarray::{Array1, Array2, Array, array, ArrayView1};
-use num_complex::Complex64;
-use fftn::fft;
-use fftn::ifft;
-use num_traits::identities::Zero;
-use map_solver::mcmc_func::{circulant_matrix, dft_matrix, circulant_det, cov2psd, psd2cov_mat, ln_xsx, dhalf_ln_xsx_dx, dhalf_ln_xsx_dp, dhalf_lndet_dps, mvn_ln_pdf, mvn_ln_pdf_grad, ln_likelihood, ln_det_sigma, ln_likelihood_grad, logprob_ana, logprob_ana_grad};
+use ndarray::{Array1, ArrayView1};
+//use num_complex::Complex64;
+//use fftn::fft;
+//use fftn::ifft;
+//use num_traits::identities::Zero;
+use map_solver::mcmc_func::{logprob_ana, logprob_ana_grad};
 use linear_solver::io::RawMM;
-use linear_solver::utils::sp_mul_a1;
+
 
 fn main(){
     let mut rng=thread_rng();
@@ -25,8 +25,6 @@ fn main(){
     });
 
     let total_tod=&tod+&noise;
-    let psd=vec![0.96; tod.len()];
-
 
     let psd_param=vec![1.0, 0.01, 0.001, -1.0];
 

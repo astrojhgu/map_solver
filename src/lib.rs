@@ -9,6 +9,7 @@ pub mod naive_mo;
 pub mod utils;
 pub mod mathematica;
 pub mod mcmc;
+pub mod mcmc2d;
 pub mod mcmc_func;
 pub mod mcmc2d_func;
 pub mod noise;
