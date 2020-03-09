@@ -32,12 +32,7 @@ fn main(){
     let ptr_mat=RawMM::<f64>::from_file("ptr_mat.mtx").to_sparse();
     let tod=RawMM::<f64>::from_file("cheat_vis.mtx").to_array1();
 
-    let answer=if let Ok(_f)=File::open("solution.mtx"){
-        RawMM::<f64>::from_file("solution.mtx").to_array1()
-    }else{
-        println!("{}", ptr_mat.cols());
-        Array1::zeros(ptr_mat.cols())
-    };
+    let answer=Array1::zeros(ptr_mat.cols());
     
     
     
@@ -49,15 +44,10 @@ fn main(){
     let x:Vec<_>=answer.iter().chain(psp.iter()).cloned().collect();
     let mut q=LsVec(x);
 
-    let noise:Array1<f64>=tod.map(|_| {
-        let f:f64=rng.sample(StandardNormal);
-        f
-    });
-
     let psp=vec![20.0, 2.0, 0.001, -1.0];
     let mut problem=Problem::empty();
 
-    for i in 0..4{
+    for i in 0..20{
         let noise=Array1::from(gen_noise(ntod, &psp, &mut rng, map_solver::mcmc_func::DT));
         let total_tod=&tod+&noise;
         problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);    
