@@ -5,7 +5,9 @@ use std::ops::{Add, Sub, Mul};
 use mcmc_func::{logprob_ana, logprob_ana_grad};
 use scorus::linear_space::type_wrapper::LsVec;
 use scorus::linear_space::traits::InnerProdSpace;
-
+use rayon::iter::ParallelIterator;
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::IndexedParallelIterator;
 pub struct Problem{
     pub tod: Vec<Vec<f64>>,
     pub ptr_mat: Vec<CsMat<f64>>,
@@ -39,9 +41,13 @@ impl Problem{
             let sky=p.0.iter().take(nx).cloned().collect::<Vec<f64>>();
             let psp=p.0.iter().skip(nx).cloned().collect::<Vec<f64>>();
             assert_eq!(psp.len(),4);
-            self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+            self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana(&sky, &psp, t, p)
             }).sum::<f64>()
+            /*
+            self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+                logprob_ana(&sky, &psp, t, p)
+            }).sum::<f64>()            */
         }
     }
 
@@ -52,9 +58,18 @@ impl Problem{
             let psp=p.0.iter().skip(nx).cloned().collect::<Vec<f64>>();
             assert_eq!(psp.len(),4);
 
+            /*
             let (gx, gp)=self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
                 logprob_ana_grad(&sky, &psp, t, p)
             }).fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
+                (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
+            });*/
+            
+            let grads:Vec<_>=self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
+                logprob_ana_grad(&sky, &psp, t, p)
+            }).collect();
+            let (gx, gp)=grads.into_iter()
+                        .fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
             LsVec(gx.0.into_iter().chain(gp.0.into_iter()).collect::<Vec<_>>())
@@ -68,7 +83,7 @@ impl Problem{
         
         move |sky:&LsVec<f64, Vec<f64>>|{
             assert_eq!(sky.len(), nx);            
-            self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+            self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana(&sky, &psp, t, p)
             }).sum::<f64>()
         }
@@ -80,9 +95,10 @@ impl Problem{
         assert_eq!(psp.len(),4);
         move |sky: &LsVec<f64, Vec<f64>>|{
             assert_eq!(sky.len(), nx);
-            let (gx, _)=self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+            let grads:Vec<_>=self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana_grad(&sky, &psp, t, p)
-            }).fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
+            }).collect();
+            let (gx, _)=grads.into_iter().fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
             gx
@@ -94,7 +110,7 @@ impl Problem{
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp:&LsVec<f64, Vec<f64>>|{
             assert_eq!(psp.len(), 4);            
-            self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+            self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana(&sky, psp, t, p)
             }).sum::<f64>()
         }
@@ -105,9 +121,10 @@ impl Problem{
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp: &LsVec<f64, Vec<f64>>|{
             assert_eq!(sky.len(), nx);
-            let (_gx, gp)=self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
+            let grads:Vec<_>=self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana_grad(&sky, psp, t, p)
-            }).fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
+            }).collect();
+            let (_gx, gp)=grads.into_iter().fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
             gp
