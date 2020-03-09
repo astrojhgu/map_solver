@@ -25,7 +25,7 @@ fn main(){
     });
 
     let total_tod=&tod+&noise;
-    let psd=vec![0.96; tod.len()/2+1];
+    let psd=vec![0.96; tod.len()];
 
     let lp1=ln_likelihood(answer.as_slice().unwrap(), total_tod.as_slice().unwrap(), &psd, &ptr_mat);
     

@@ -142,6 +142,7 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
 pub fn ln_xsx<T>(x: &[T], psd: &[T])->T
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
+    assert_eq!(x.len(), psd.len());
     let two=T::one()+T::one();
     let n=x.len();
     let mut x_c:Vec<_>=x.iter().map(|&x| Complex::<T>::from(x)).collect();
@@ -215,6 +216,7 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 
 pub fn ln_likelihood(x: &[f64], y: &[f64], psd: &[f64], ptr_mat: &CsMat<f64>)->f64
 {
+    assert_eq!(y.len(), psd.len());
     let nout=y.len();
     //let ps1=ps_mirror(psd, nout);
     let noise=&ArrayView1::from(y)-&sp_mul_a1(&ptr_mat, ArrayView1::from(x));
@@ -260,7 +262,8 @@ pub fn logprob_ana(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64>)->f
     let ntod=tod.len() as isize;
     let fmin=1.0/(DT*ntod as f64);
     let psd=(0..(ntod+1)/2).chain(-ntod/2..0).map(|i| ps_model(i as f64*fmin, a, b, f0, alpha, PS_W, PS_E)+1e-9).collect::<Vec<_>>();
-    if f0<fmin || f0>fmin*(ntod/2) as f64 || alpha< -3.0 || alpha >1.0{
+    if f0>fmin*(ntod/2) as f64 || alpha< -3.0 || alpha >1.0{
+        println!("{} {} {}", f0, fmin, fmin*(ntod/2) as f64);
         return -std::f64::INFINITY;
     }
 
@@ -294,6 +297,7 @@ pub fn logprob_ana_grad(x: &[f64], psp: &[f64], tod: &[f64], ptr_mat: &CsMat<f64
 
 pub fn ln_likelihood_grad(x: &[f64], y: &[f64], psd: &[f64], ptr_mat: &CsMat<f64>)->(Vec<f64>, Vec<f64>){
     let nout=y.len();
+    assert_eq!(y.len(), psd.len());
     let noise=&ArrayView1::from(y)-&sp_mul_a1(&ptr_mat, ArrayView1::from(x));
     let (dlnpdn, dlnpdp)=mvn_ln_pdf_grad(noise.as_slice().unwrap(), &psd);
 

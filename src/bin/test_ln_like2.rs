@@ -25,10 +25,10 @@ fn main(){
     });
 
     let total_tod=&tod+&noise;
-    let psd=vec![0.96; tod.len()/2+1];
+    let psd=vec![0.96; tod.len()];
 
 
-    let psd_param=vec![1.0, 0.001, 2.0, -1.0];
+    let psd_param=vec![1.0, 0.01, 0.001, -1.0];
 
     let lp1=logprob_ana(answer.as_slice().unwrap(), &psd_param, total_tod.as_slice().unwrap(), &ptr_mat);
     
@@ -59,6 +59,6 @@ fn main(){
         let diff=lp2-lp1;
         let (gx, gp)=logprob_ana_grad(answer.as_slice().unwrap(), &psd_param, total_tod.as_slice().unwrap(), &ptr_mat);
         let diff2=ArrayView1::from(&gx).dot(&dx)+ArrayView1::from(&gp).dot(&dp);
-        println!("{} {} {}",diff, diff2, (diff2-diff).abs());
+        println!("{} {} {} {} {}",lp2, lp1, diff, diff2, (diff2-diff).abs());
     }
 }
