@@ -73,7 +73,7 @@ fn main(){
 
     let mut problem=Problem::empty(n_t, n_ch);
 
-    for i in 0..2{
+    for i in 0..16{
         let noise=gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0)*0.2;
         let noise=flatten_order_f(noise.view());
         let total_tod=&tod+&noise;
