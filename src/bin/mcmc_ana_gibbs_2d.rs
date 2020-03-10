@@ -149,7 +149,7 @@ fn main(){
         }
 
         if !running.load(Ordering::SeqCst) {
-            println!("{:?}", q);
+            //println!("{:?}", q);
             RawMM::from_array1(Array1::from(q.0.clone()).view()).to_file("dump.mtx");
             break;
         }
