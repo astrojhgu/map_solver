@@ -146,6 +146,9 @@ fn main(){
             }
 
         }
+        if i%10==0{
+            RawMM::from_array1(Array1::from(q.0.clone()).view()).to_file("dump.mtx");
+        }
 
         if !running.load(Ordering::SeqCst) {
             println!("{:?}", &q.0[nx..]);
