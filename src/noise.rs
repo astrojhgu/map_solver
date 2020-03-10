@@ -30,7 +30,9 @@ U: Rng,
             x=x.conj();
         }
         x
-    }).collect::<Vec<_>>();
+    })
+    .map(|x| x.sqrt())
+    .collect::<Vec<_>>();
 
     let mut noise=vec![Complex::<T>::new(T::zero(), T::zero()); psd.len()];
     ifft(&mut psd, &mut noise);
@@ -69,7 +71,7 @@ U: Rng,
     let b=psp[5];
 
 
-    let psm=ps_model_2d(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, T::from_f64(1e-9).unwrap(), T::from_f64(1e-9).unwrap());
+    let psm=ps_model_2d(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, T::from_f64(1e-9).unwrap(), T::from_f64(1e-9).unwrap()).map(|&x|x.sqrt());
     fwhite=&fwhite*&psm;
     let mut result=Array2::zeros((n_t, n_ch));
     ifft2(&mut fwhite.view_mut(), &mut result.view_mut());
