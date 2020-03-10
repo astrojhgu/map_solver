@@ -54,24 +54,23 @@ fn main(){
     let (a_t, ft_0, alpha_t)=(3.0, ft_min*20 as f64, -1.);
     let (fch_0, alpha_ch)=(fch_min*5 as f64, -1.);
     let b=0.1;
-
-    let psd_param=vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
-
     
     
     let nx=ptr_mat.cols();
     //let answer=vec![0.0; answer.len()];
-    let psp=vec![0.1, 0.1, -1.0, 0.1, -1.0, 0.0];
-    let x:Vec<_>=answer.iter().chain(psp.iter()).cloned().collect();
     let mut q=if let Ok(f)=File::open("dump.mtx"){
         println!("dumped file found, loading...");
         LsVec(RawMM::from_file("dump.mtx").to_array1().to_vec())
     }else{
         println!("dumped file not found, use default values");
+        let psp=vec![0.1, 0.1, 0.0, 0.1, 0.0, 0.0];
+        let x:Vec<_>=answer.iter().chain(psp.iter()).cloned().collect();
         LsVec(x)
     };
 
     let mut problem=Problem::empty(n_t, n_ch);
+
+    let psd_param=vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
     for i in 0..16{
         let noise=gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0)*0.2;
