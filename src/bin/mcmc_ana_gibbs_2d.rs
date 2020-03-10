@@ -23,6 +23,7 @@ use num_traits::identities::Zero;
 use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
 use map_solver::mcmc2d::Problem;
+use map_solver::utils::{split_ss, combine_ss};
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
@@ -98,14 +99,17 @@ fn main(){
         let mut cnt_s=0;
         let mut cnt=0;
         {
-            let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
-            let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
+            let flags:Vec<_>=(0..q.0.len()).map(|x| x < nx).collect();
+            //let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
+            let (q1, q_rest)=split_ss(&q, &flags);
+            let mut q1=LsVec(q1);
 
-            let lp=problem.get_logprob_sky(&q);
-            let lp_grad=problem.get_logprob_grad_sky(&q);
+            let lp=problem.get_logprob(&q_rest);
+            let lp_grad=problem.get_logprob_grad(&q_rest);
 
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
+            //println!("{:?} {}", q1.0.len(), nx);
 
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
@@ -114,7 +118,8 @@ fn main(){
                 }
                 cnt_s+=1;    
             }
-            q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
+            //q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
+            q=LsVec(combine_ss(&q1, &q_rest));
 
             let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
             if i%10==0{
@@ -123,11 +128,12 @@ fn main(){
         }
         
         {//sample p
-            let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
-            let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
+            let flags:Vec<_>=(0..q.0.len()).map(|x| x >= nx).collect();
+            let (q1, q_rest)=split_ss(&q, &flags);
+            let mut q1=LsVec(q1);
 
-            let lp=problem.get_logprob_psp(&q);
-            let lp_grad=problem.get_logprob_grad_psp(&q);
+            let lp=problem.get_logprob(&q_rest);
+            let lp_grad=problem.get_logprob_grad(&q_rest);
 
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
@@ -140,7 +146,7 @@ fn main(){
                 cnt_p+=1;    
             }
 
-            q=LsVec(sky.iter().chain(q1.iter()).cloned().collect::<Vec<_>>());
+            q=LsVec(combine_ss(&q1, &q_rest));
             if i%10==0{
                 println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
             }
