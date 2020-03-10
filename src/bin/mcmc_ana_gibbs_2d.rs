@@ -1,5 +1,8 @@
 extern crate map_solver;
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+
 use rand::{thread_rng, Rng};
 use rand_distr::StandardNormal;
 
@@ -27,6 +30,15 @@ const L:usize=1;
 const nsteps:usize=5;
 
 fn main(){
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        println!("ctrl+C pressed, terminating...");
+        r.store(false, Ordering::SeqCst);
+    }).expect("Error setting Ctrl-C handler");
+
+
+
     let mut rng=thread_rng();
 
     let ptr_mat=RawMM::<f64>::from_file("ideal_data/ptr_32_ch.mtx").to_sparse();
@@ -51,7 +63,13 @@ fn main(){
     //let answer=vec![0.0; answer.len()];
     let psp=vec![0.1, 0.1, -1.0, 0.1, -1.0, 0.0];
     let x:Vec<_>=answer.iter().chain(psp.iter()).cloned().collect();
-    let mut q=LsVec(x);
+    let mut q=if let Ok(f)=File::open("dump.mtx"){
+        println!("dumped file found, loading...");
+        LsVec(RawMM::from_file("dump.mtx").to_array1().to_vec())
+    }else{
+        println!("dumped file not found, use default values");
+        LsVec(x)
+    };
 
     let mut problem=Problem::empty(n_t, n_ch);
 
@@ -80,6 +98,30 @@ fn main(){
         let mut cnt_p=0;
         let mut cnt_s=0;
         let mut cnt=0;
+        {
+            let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
+            let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
+
+            let lp=problem.get_logprob_sky(&q);
+            let lp_grad=problem.get_logprob_grad_sky(&q);
+
+            let mut lp_value=lp(&q1);
+            let mut lp_grad_value=lp_grad(&q1);
+
+            for j in 0..nsteps{
+                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
+                if accepted{
+                    accept_cnt_s+=1;
+                }
+                cnt_s+=1;    
+            }
+            q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
+
+            let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
+            if i%10==0{
+                println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
+            }
+        }
         
         {//sample p
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
@@ -105,29 +147,11 @@ fn main(){
             }
 
         }
-        {
-            let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
-            let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
-            let lp=problem.get_logprob_sky(&q);
-            let lp_grad=problem.get_logprob_grad_sky(&q);
-
-            let mut lp_value=lp(&q1);
-            let mut lp_grad_value=lp_grad(&q1);
-
-            for j in 0..nsteps{
-                let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
-                if accepted{
-                    accept_cnt_s+=1;
-                }
-                cnt_s+=1;    
-            }
-            q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
-
-            let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
-            if i%10==0{
-                println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
-            }
+        if !running.load(Ordering::SeqCst) {
+            println!("{:?}", q);
+            RawMM::from_array1(Array1::from(q.0.clone()).view()).to_file("dump.mtx");
+            break;
         }
     }
 }
