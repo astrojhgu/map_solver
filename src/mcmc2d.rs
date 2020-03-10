@@ -38,7 +38,7 @@ impl Problem{
         self
     }
 
-    pub fn get_logprob<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a{
+    pub fn get_logprob<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a + std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         move |p:&LsVec<f64, Vec<f64>>|{
             let sky=p.0.iter().take(nx).cloned().collect::<Vec<f64>>();
@@ -55,7 +55,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_grad<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a{
+    pub fn get_logprob_grad<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         move |p: &LsVec<f64, Vec<f64>>|{
             let sky=p.0.iter().take(nx).cloned().collect::<Vec<f64>>();
@@ -81,7 +81,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a{
+    pub fn get_logprob_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let psp:Vec<_>=q.iter().skip(nx).cloned().collect();
         assert_eq!(psp.len(),6);
@@ -94,7 +94,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_grad_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a{
+    pub fn get_logprob_grad_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let psp:Vec<_>=q.iter().skip(nx).cloned().collect();
         assert_eq!(psp.len(),6);
@@ -110,7 +110,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a{
+    pub fn get_logprob_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp:&LsVec<f64, Vec<f64>>|{
@@ -121,7 +121,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_grad_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a{
+    pub fn get_logprob_grad_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp: &LsVec<f64, Vec<f64>>|{
