@@ -11,6 +11,8 @@ use scorus::linear_space::traits::InnerProdSpace;
 use scorus::mcmc::hmc::naive::sample;
 use scorus::mcmc::hmc::naive::HmcParam;
 use scorus::linear_space::type_wrapper::LsVec;
+use scorus::opt::cg::cg_iter;
+use scorus::opt::tolerance::Tolerance;
 
 use ndarray::{Array1, Array2, Array, array, ArrayView1};
 use num_complex::Complex64;
@@ -85,8 +87,8 @@ fn main(){
             let sky=q.0.iter().take(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().skip(nx).cloned().collect::<Vec<_>>());
 
-            let lp=problem.get_logprob_psp(&q);
-            let lp_grad=problem.get_logprob_grad_psp(&q);
+            let lp=problem.get_logprob_psp(&q, false);
+            let lp_grad=problem.get_logprob_grad_psp(&q, false);
 
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
@@ -109,11 +111,11 @@ fn main(){
             let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
             let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
 
-            let lp=problem.get_logprob_sky(&q);
-            let lp_grad=problem.get_logprob_grad_sky(&q);
+            let lp=problem.get_logprob_sky(&q, false);
+            let lp_grad=problem.get_logprob_grad_sky(&q, false);
 
             let mut lp_value=lp(&q1);
-            let mut lp_grad_value=lp_grad(&q1);
+            let mut lp_grad_value=lp_grad(&q1,);
 
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
@@ -129,5 +131,35 @@ fn main(){
                 println!("{} {:.3} {:.8} {:.5} {:e}",i, accept_cnt_s as f64/cnt_s as f64, epsilon_s, lp_value,mean_value);
             }
         }
+        if i%100==0 && i!=0
+        {
+            let psp=q.0.iter().skip(nx).cloned().collect::<Vec<_>>();
+            let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
+
+            let lp=problem.get_logprob_sky(&q, true);
+            let lp_grad=problem.get_logprob_grad_sky(&q, true);
+            
+            let mut lp_value=lp(&q1);
+            let mut lp_grad_value=lp_grad(&q1);
+            let mut dir=&lp_grad_value*-1.;
+
+            
+            for j in 0..100{
+                if cg_iter(&lp, &lp_grad, &mut q1, &mut dir, &mut lp_grad_value, &mut lp_value, Tolerance::abs(1e-5)){
+                    println!("{} {}", j, lp_value);
+                    break;
+                }
+                println!("{} {}", j, lp_value);
+            }
+
+            q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
+
+            let mean_value=q1.0.iter().sum::<f64>()/nx as f64;
+            if i%1==0{
+                println!("{} {:.5} {:e}",i, lp_value,mean_value);
+            }
+        }
+
+
     }
 }

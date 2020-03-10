@@ -38,7 +38,7 @@ impl Problem{
         self
     }
 
-    pub fn get_logprob<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a + std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob<'a>(&'a self, negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a + std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         move |p:&LsVec<f64, Vec<f64>>|{
             let sky=p.0.iter().take(nx).cloned().collect::<Vec<f64>>();
@@ -47,7 +47,7 @@ impl Problem{
             self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 //logprob_ana(&sky, &psp, t, p)
                 logprob_ana(&sky, &psp, t, p, self.n_t, self.n_ch)
-            }).sum::<f64>()
+            }).sum::<f64>()*if negate{-1.0}else{1.0}
             /*
             self.ptr_mat.iter().zip(self.tod.iter()).map(|(p, t)|{
                 logprob_ana(&sky, &psp, t, p)
@@ -55,7 +55,7 @@ impl Problem{
         }
     }
 
-    pub fn get_logprob_grad<'a>(&'a self)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob_grad<'a>(&'a self, negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         move |p: &LsVec<f64, Vec<f64>>|{
             let sky=p.0.iter().take(nx).cloned().collect::<Vec<f64>>();
@@ -77,11 +77,11 @@ impl Problem{
                         .fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
-            LsVec(gx.0.into_iter().chain(gp.0.into_iter()).collect::<Vec<_>>())
+            &LsVec(gx.0.into_iter().chain(gp.0.into_iter()).collect::<Vec<_>>())*if negate{-1.0}else{1.0}
         }
     }
 
-    pub fn get_logprob_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob_sky<'a>(&'a self, q: &[f64], negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let psp:Vec<_>=q.iter().skip(nx).cloned().collect();
         assert_eq!(psp.len(),6);
@@ -90,11 +90,11 @@ impl Problem{
             assert_eq!(sky.len(), nx);            
             self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana(&sky, &psp, t, p, self.n_t, self.n_ch)
-            }).sum::<f64>()
+            }).sum::<f64>()*if negate{-1.0}else{1.0}
         }
     }
 
-    pub fn get_logprob_grad_sky<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob_grad_sky<'a>(&'a self, q: &[f64], negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let psp:Vec<_>=q.iter().skip(nx).cloned().collect();
         assert_eq!(psp.len(),6);
@@ -106,22 +106,22 @@ impl Problem{
             let (gx, _)=grads.into_iter().fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
-            gx
+            &gx*if negate{-1.0}else{1.0}
         }
     }
 
-    pub fn get_logprob_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob_psp<'a>(&'a self, q: &[f64], negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->f64+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp:&LsVec<f64, Vec<f64>>|{
             assert_eq!(psp.len(), 6);
             self.ptr_mat.par_iter().zip(self.tod.par_iter()).map(|(p, t)|{
                 logprob_ana(&sky, psp, t, p, self.n_t, self.n_ch)
-            }).sum::<f64>()
+            }).sum::<f64>()*if negate{-1.0}else{1.0}
         }
     }
 
-    pub fn get_logprob_grad_psp<'a>(&'a self, q: &[f64])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
+    pub fn get_logprob_grad_psp<'a>(&'a self, q: &[f64], negate: bool)->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let sky:Vec<_>=q.iter().take(nx).cloned().collect();
         move |psp: &LsVec<f64, Vec<f64>>|{
@@ -132,7 +132,7 @@ impl Problem{
             let (_gx, gp)=grads.into_iter().fold((LsVec(vec![0.0_f64; sky.len()]), LsVec(vec![0.0_f64; psp.len()])), |a,b|{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
-            gp
+            &gp*if negate{-1.0}else{1.0}
         }
     }
 }
