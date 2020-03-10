@@ -5,7 +5,7 @@ use rayon::iter::ParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::IndexedParallelIterator;
 use crate::{mcmc2d_func};
-use crate::utils::{combine_ss, split_ss};
+use crate::utils::{combine_ss, split_ss, SSFlag};
 
 pub struct Problem{
     pub tod: Vec<Vec<f64>>,
@@ -58,7 +58,8 @@ impl Problem{
     pub fn get_logprob_grad<'a>(&'a self, q0: &[Option<f64>])->impl Fn(&LsVec<f64, Vec<f64>>)->LsVec<f64, Vec<f64>>+'a+ std::marker::Sync+std::clone::Clone{
         let nx=self.ptr_mat[0].cols();
         let q0:Vec<_>=q0.iter().cloned().collect();
-        let flag:Vec<_>=q0.iter().map(|x| x.is_none()).collect();
+        //let flag:Vec<_>=q0.iter().map(|x| x.is_none()).collect();
+        let flags:Vec<_>=q0.iter().map(|x| if x.is_none() {SSFlag::Free}else{SSFlag::Fixed}).collect();
         move |p1: &LsVec<f64, Vec<f64>>|{
             let p=combine_ss(p1, &q0);
             let sky=p.iter().take(nx).cloned().collect::<Vec<f64>>();
@@ -81,7 +82,7 @@ impl Problem{
                 (&a.0+&LsVec(b.0), &a.1+&LsVec(b.1))
             });
             let g=gx.0.into_iter().chain(gp.0.into_iter()).collect::<Vec<_>>();
-            let (g,_)=split_ss(&g, &flag);
+            let (g,_)=split_ss(&g, &flags);
             assert_eq!(g.len(), p1.len());
             LsVec(g)
         }

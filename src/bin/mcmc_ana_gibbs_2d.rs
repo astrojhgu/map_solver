@@ -22,6 +22,7 @@ use fftn::ifft;
 use num_traits::identities::Zero;
 use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
+use map_solver::utils::SSFlag;
 use map_solver::mcmc2d::Problem;
 use map_solver::utils::{split_ss, combine_ss};
 use linear_solver::io::RawMM;
@@ -99,7 +100,8 @@ fn main(){
         let mut cnt_s=0;
         let mut cnt=0;
         {
-            let flags:Vec<_>=(0..q.0.len()).map(|x| x < nx).collect();
+            //let flags:Vec<_>=(0..q.0.len()).map(|x| x < nx).collect();
+            let flags:Vec<_>=(0..q.0.len()).map(|x| if x < nx {SSFlag::Free}else{SSFlag::Fixed}).collect();
             //let mut q1=LsVec(q.0.iter().take(nx).cloned().collect::<Vec<_>>());
             let (q1, q_rest)=split_ss(&q, &flags);
             let mut q1=LsVec(q1);
@@ -128,7 +130,7 @@ fn main(){
         }
         
         {//sample p
-            let flags:Vec<_>=(0..q.0.len()).map(|x| x >= nx).collect();
+            let flags:Vec<_>=(0..q.0.len()).map(|x| if x >= nx {SSFlag::Free} else {SSFlag::Fixed}).collect();
             let (q1, q_rest)=split_ss(&q, &flags);
             let mut q1=LsVec(q1);
 

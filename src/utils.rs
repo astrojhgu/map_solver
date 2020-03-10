@@ -219,16 +219,25 @@ where
     irfft2(s.view())
 }
 
-pub fn split_ss<T>(x: &[T], flag: &[bool])->(Vec<T>, Vec<Option<T>>)
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SSFlag{
+    Fixed,
+    Free,
+}
+
+pub fn split_ss<T>(x: &[T], flag: &[SSFlag])->(Vec<T>, Vec<Option<T>>)
 where T: Copy{
     let mut y1=Vec::new();
     let mut y2=Vec::new();
     for (&x1, &f1) in x.iter().zip(flag.iter()){
-        if f1{
-            y1.push(x1);
-            y2.push(None);
-        }else{
-            y2.push(Some(x1));
+        match f1{
+            SSFlag::Free=>{
+                y1.push(x1);
+                y2.push(None);    
+            }
+            SSFlag::Fixed=>{
+                y2.push(Some(x1));
+            }
         }
     }
     (y1, y2)
