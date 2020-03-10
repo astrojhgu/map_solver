@@ -27,8 +27,8 @@ use map_solver::utils::{split_ss, combine_ss};
 use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
-const L:usize=1;
-const nsteps:usize=5;
+const L:usize=5;
+const nsteps:usize=2;
 
 fn main(){
     let running = Arc::new(AtomicBool::new(true));
