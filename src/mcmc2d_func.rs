@@ -266,7 +266,7 @@ where
         .par_iter()
         .map(|&f| dpl_df0(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
-    let _b2 = b.powi(2);
+    //let b2 = b.powi(2);
     let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len() {
         for j in 0..fch.len() {
