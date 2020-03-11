@@ -19,8 +19,8 @@ use sprs::CsMat;
 //use crate::
 
 use crate::utils::{deflatten_order_f, flatten_order_f};
-const PS_W: f64 = 0.0001;
-const PS_E: f64 = 0.00001;
+pub const PS_W: f64 = 1e-9;
+pub const PS_E: f64 = 1e-9;
 pub const DT: f64 = 2.0;
 pub const FMAX: f64 = 0.5 / DT;
 
@@ -454,7 +454,7 @@ where
     fft2(&mut x_c.view_mut(), &mut X.view_mut());
     //println!("psd={:?}", psd);
     let mut result = Array2::<T>::zeros((n_t, n_ch));
-    azip!((r in &mut result, &x in &X, &p in &psd) *r=-x.norm_sqr()/p.powi(2)/two/T::from_usize(n_t*n_ch).unwrap());
+    azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two/T::from_usize(n_t*n_ch).unwrap());
     result
 }
 
@@ -764,7 +764,7 @@ mod tests {
         //println!("xx={}", (half_g*2.0-direct_g));
         //println!("a1={}", half_g*2.0);
         //println!("b1={}", direct_g);
-        println!("a: {} {}", half_g * 2.0, direct_g);
+        //println!("a: {} {}", half_g * 2.0, direct_g);
         assert!((half_g * 2.0 - direct_g).abs() < 1e-4);
     }
 
@@ -786,8 +786,8 @@ mod tests {
 
         let half_g = super::dhalf_ln_xsx_dp(x.view(), psd.view())[m];
         //println!("half_g*2-direct_g={}", (half_g*2.0-direct_g));
-        println!("half_g*2={}", half_g * 2.0);
-        println!("direct_g={}", direct_g);
+        //println!("half_g*2={}", half_g * 2.0);
+        //println!("direct_g={}", direct_g);
         //println!("a={}",super::ln_xsx(x.as_slice().unwrap(), &psd));
         //println!("b={}",super::ln_xsx(x.as_slice().unwrap(), &psd1));
         assert!((half_g * 2.0 - direct_g).abs() < 1e-5);
@@ -803,7 +803,7 @@ mod tests {
         let lndet2 = psd1.iter().map(|x| x.ln()).fold(0.0, |x, y| x + y);
         let half_dlndet = super::dhalf_lndet_dps(psd.view())[m];
         let direct_dlndet = (lndet2 - lndet1) / dp;
-        println!("a2: {} {}", direct_dlndet, 2.0 * half_dlndet);
+        //println!("a2: {} {}", direct_dlndet, 2.0 * half_dlndet);
         assert!((half_dlndet * 2.0 - direct_dlndet) < 1e-5);
     }
 
