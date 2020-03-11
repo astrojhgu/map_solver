@@ -86,7 +86,8 @@ impl MappingProblem {
         };
         let tol = self.tol;
         let m_max = self.m_max;
-        let mut ags = AGmresState::<f64, f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
+        let mut ags =
+            AGmresState::<f64, f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
 
         //let mut ags = GmresState::<f64>::new(&A, x.view(), b.view(), &M, m_max, tol);
 

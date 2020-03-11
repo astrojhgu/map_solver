@@ -2,15 +2,14 @@
 #![allow(clippy::many_single_char_names)]
 use std::default::Default;
 //use rustfft::{FFTnum, FFTplanner};
-use scorus::linear_space::type_wrapper::LsVec;
-use scorus::linear_space::traits::InnerProdSpace;
+use crate::mathematica::{arctan, log, powerf, poweri};
 use fftn::{fft, ifft, Complex, FFTnum};
-use sprs::CsMat;
 use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use num_traits::{Float, FloatConst, NumAssign, Zero};
-use crate::mathematica::{arctan, powerf, poweri, log};
-
+use scorus::linear_space::traits::InnerProdSpace;
+use scorus::linear_space::type_wrapper::LsVec;
+use sprs::CsMat;
 
 pub fn rfft<T>(indata: &[T]) -> Vec<Complex<T>>
 where
@@ -84,8 +83,6 @@ where
     }
     rresult
 }
-
-
 
 pub fn circmat_x_vec<T>(m: &[T], x: &[T]) -> Vec<T>
 where
@@ -193,13 +190,13 @@ pub fn flatten_order_f<T>(data: ArrayView2<T>) -> Array1<T>
 where
     T: Copy + Default + Zero,
 {
-    let n=data.ncols()*data.rows();
+    let n = data.ncols() * data.nrows();
     //data.t().as_standard_layout().into_owned().into_shape((n,)).unwrap()
-    let mut result=Array1::zeros((n,));
-    let nr=data.nrows();
-    for i in 0..data.nrows(){
-        for j in 0..data.ncols(){
-            result[j*nr+i]=data[(i,j)];
+    let mut result = Array1::zeros((n,));
+    let nr = data.nrows();
+    for i in 0..data.nrows() {
+        for j in 0..data.ncols() {
+            result[j * nr + i] = data[(i, j)];
         }
     }
     result
@@ -210,10 +207,10 @@ where
     T: Copy + Default + Zero,
 {
     //data.into_shape((ncols,nrows)).unwrap().t().to_owned().as_standard_layout().into_owned()
-    let mut result=Array2::zeros((nrows, ncols));
-    for i in 0..nrows{
-        for j in 0..ncols{
-            result[(i,j)]=data[j*nrows+i];
+    let mut result = Array2::zeros((nrows, ncols));
+    for i in 0..nrows {
+        for j in 0..ncols {
+            result[(i, j)] = data[j * nrows + i];
         }
     }
     result
@@ -236,22 +233,24 @@ where
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum SSFlag{
+pub enum SSFlag {
     Fixed,
     Free,
 }
 
-pub fn split_ss<T>(x: &[T], flag: &[SSFlag])->(Vec<T>, Vec<Option<T>>)
-where T: Copy{
-    let mut y1=Vec::new();
-    let mut y2=Vec::new();
-    for (&x1, &f1) in x.iter().zip(flag.iter()){
-        match f1{
-            SSFlag::Free=>{
+pub fn split_ss<T>(x: &[T], flag: &[SSFlag]) -> (Vec<T>, Vec<Option<T>>)
+where
+    T: Copy,
+{
+    let mut y1 = Vec::new();
+    let mut y2 = Vec::new();
+    for (&x1, &f1) in x.iter().zip(flag.iter()) {
+        match f1 {
+            SSFlag::Free => {
                 y1.push(x1);
-                y2.push(None);    
+                y2.push(None);
             }
-            SSFlag::Fixed=>{
+            SSFlag::Fixed => {
                 y2.push(Some(x1));
             }
         }
@@ -259,16 +258,18 @@ where T: Copy{
     (y1, y2)
 }
 
-pub fn combine_ss<T>(x: &[T], y: &[Option<T>])->Vec<T>
-where T:Copy{
-    let mut n=0;
-    let mut result=Vec::new();
-    for (&y1) in y.iter(){
-        if let Some(x1)=y1{
+pub fn combine_ss<T>(x: &[T], y: &[Option<T>]) -> Vec<T>
+where
+    T: Copy,
+{
+    let mut n = 0;
+    let mut result = Vec::new();
+    for &y1 in y.iter() {
+        if let Some(x1) = y1 {
             result.push(x1);
-        }else{
+        } else {
             result.push(x[n]);
-            n+=1;
+            n += 1;
         }
     }
     assert_eq!(n, x.len());

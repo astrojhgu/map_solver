@@ -183,7 +183,6 @@ impl MappingProblem {
             .map(|x| Array1::from(rfft(x.as_slice().unwrap())))
             .collect();
 
-        
         let A: Box<dyn Fn(ArrayView1<f64>) -> Array1<f64>> =
             Box::new(|x: ArrayView1<f64>| -> Array1<f64> {
                 self.apply_ptr_mat_t(
@@ -204,7 +203,8 @@ impl MappingProblem {
         };
         let tol = self.tol;
         let m_max = self.m_max;
-        let mut ags = AGmresState::<f64,f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
+        let mut ags =
+            AGmresState::<f64, f64>::new(&A, x.view(), b.view(), None, m_max, 1, 1, 0.4, tol);
 
         //let mut ags = GmresState::<f64>::new(&A, x.view(), b.view(), &M, m_max, tol);
 
