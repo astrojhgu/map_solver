@@ -29,7 +29,7 @@ use linear_solver::io::RawMM;
 use linear_solver::utils::sp_mul_a1;
 
 const L:usize=5;
-const nsteps:usize=2;
+const nsteps:usize=10;
 
 fn main(){
     let running = Arc::new(AtomicBool::new(true));
@@ -112,14 +112,18 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
             //println!("{:?} {}", q1.0.len(), nx);
-            println!("begin sampling x");
+            eprint!("x");
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
                 if accepted{
+                    eprint!(".");
                     accept_cnt_s+=1;
+                }else{
+                    eprint!(" ")
                 }
                 cnt_s+=1;    
             }
+            eprintln!("$");
             //q=LsVec(q1.iter().chain(psp.iter()).cloned().collect::<Vec<_>>());
             q=LsVec(combine_ss(&q1, &q_rest));
 
@@ -139,14 +143,18 @@ fn main(){
 
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
-            println!("begin sampling p");
+            eprint!("p");
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, L, &param);
                 if accepted{
+                    eprint!(".");
                     accept_cnt_p+=1;
+                }else{
+                    eprint!(" ");
                 }
                 cnt_p+=1;    
             }
+            eprintln!("$");
             q=LsVec(combine_ss(&q1, &q_rest));
             if i%10==0{
                 println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);
