@@ -112,7 +112,7 @@ fn main(){
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
             //println!("{:?} {}", q1.0.len(), nx);
-
+            println!("begin sampling x");
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_s, L, &param);
                 if accepted{
@@ -139,7 +139,7 @@ fn main(){
 
             let mut lp_value=lp(&q1);
             let mut lp_grad_value=lp_grad(&q1);
-
+            println!("begin sampling p");
             for j in 0..nsteps{
                 let accepted=sample(&lp, &lp_grad, &mut q1, &mut lp_value, &mut lp_grad_value, &mut rng, &mut epsilon_p, L, &param);
                 if accepted{
@@ -147,7 +147,6 @@ fn main(){
                 }
                 cnt_p+=1;    
             }
-
             q=LsVec(combine_ss(&q1, &q_rest));
             if i%10==0{
                 println!("{} {:.3} {:.8} {:.5}  {:?}",i, accept_cnt_p as f64/cnt_p as f64, epsilon_p, lp_value, q1.0);

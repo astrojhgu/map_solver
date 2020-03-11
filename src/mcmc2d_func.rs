@@ -1,6 +1,12 @@
 #![allow(unused_imports)]
 #![allow(clippy::many_single_char_names)]
 use std::default::Default;
+
+use rayon::iter::ParallelIterator;
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::IndexedParallelIterator;
+
+
 //use rustfft::{FFTnum, FFTplanner};
 use scorus::linear_space::type_wrapper::LsVec;
 use scorus::linear_space::traits::InnerProdSpace;
@@ -72,8 +78,8 @@ pub fn ps_model<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T , fch_0: T, al
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -97,8 +103,8 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 pub fn dps_model_da_t<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T , fch_0: T, alpha_ch: T, b: T, w: T, e:T)->Array2<T>
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| dpl_da(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| dpl_da(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -112,8 +118,8 @@ where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
 pub fn dps_model_da_ch<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T , fch_0: T, alpha_ch: T, b: T, w: T, e:T)->Array2<T>
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>{
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| dpl_da(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| dpl_da(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -139,8 +145,8 @@ pub fn dps_model_df0_t<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T, fch_0:
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| dpl_df0(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| dpl_df0(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -155,8 +161,8 @@ pub fn dps_model_df0_ch<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T , fch_
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| dpl_df0(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| dpl_df0(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -179,8 +185,8 @@ pub fn dps_model_dalpha_t<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T , fc
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| dpl_dalpha(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| dpl_dalpha(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
@@ -195,8 +201,8 @@ pub fn dps_model_dalpha_ch<T>(ft: &[T], fch: &[T], a_t:T, ft_0: T, alpha_t:T ,  
 where T:Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>
 {
     let a_ch=T::one();
-    let x=ft.iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
-    let y=fch.iter().map(|&f| dpl_dalpha(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
+    let x=ft.par_iter().map(|&f| pl(f, a_t, ft_0, alpha_t, w, e)).collect::<Vec<_>>();
+    let y=fch.par_iter().map(|&f| dpl_dalpha(f, a_ch, fch_0, alpha_ch, w, e)).collect::<Vec<_>>();
     let b2=b.powi(2);
     let mut result=Array2::<T>::zeros((ft.len(), fch.len()));
     for i in 0..ft.len(){
