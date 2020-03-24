@@ -9,10 +9,12 @@ use rayon::iter::ParallelIterator;
 
 //use rustfft::{FFTnum, FFTplanner};
 use crate::mathematica::{arctan, log, powerf, poweri};
-use fftn::{fft2, ifft2, Complex, FFTnum};
+
+use crate::utils::{fft2, ifft2};
 use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
 use ndarray::{azip, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
-use num_traits::{Float, FloatConst, NumAssign, Zero};
+use num_traits::{Float, FloatConst, NumAssign, Zero, One, cast::FromPrimitive};
+use num_complex::Complex;
 use scorus::linear_space::traits::InnerProdSpace;
 use scorus::linear_space::type_wrapper::LsVec;
 use sprs::CsMat;
@@ -23,10 +25,9 @@ pub const PS_W: f64 = 1e-9;
 pub const PS_E: f64 = 1e-9;
 pub const DT: f64 = 2.0;
 pub const FMAX: f64 = 0.5 / DT;
+type T=f64;
 
-pub fn dft2d_matrix<T>(M: usize, N: usize, forward: bool) -> Array2<Complex<T>>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dft2d_matrix(M: usize, N: usize, forward: bool) -> Array2<Complex<T>>
 {
     let mut result = Array2::zeros((M * N, M * N));
     let two = T::one() + T::one();
@@ -53,24 +54,20 @@ where
     result
 }
 
-pub fn smooth_step<T>(x: T, w: T) -> T
-where
-    T: Float + FloatConst,
+pub fn smooth_step(x: T, w: T) -> T
 {
     let two = T::one() + T::one();
     (T::PI() / two + arctan((x) / w)) / T::PI()
 }
 
-pub fn smooth_step_prime<T>(x: T, w: T) -> T
-where
-    T: Float + FloatConst,
+pub fn smooth_step_prime(x: T, w: T) -> T
 {
     w / (T::PI() * (w.powi(2) + x.powi(2)))
 }
 
-pub fn pl<T>(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn pl(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     let f = f.abs();
@@ -80,7 +77,7 @@ where
     a2 * y * s + a2 * (T::one() - s)
 }
 
-pub fn ps_model<T>(
+pub fn ps_model(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -92,8 +89,8 @@ pub fn ps_model<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -114,9 +111,9 @@ where
     result
 }
 
-pub fn dpl_da<T>(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dpl_da(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     let f = f.abs();
@@ -125,7 +122,7 @@ where
     (T::one() + (y - T::one()) * s) * two * a
 }
 
-pub fn dps_model_da_t<T>(
+pub fn dps_model_da_t(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -137,8 +134,8 @@ pub fn dps_model_da_t<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -159,7 +156,7 @@ where
     result
 }
 
-pub fn dps_model_da_ch<T>(
+pub fn dps_model_da_ch(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -171,8 +168,8 @@ pub fn dps_model_da_ch<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -193,9 +190,9 @@ where
     result
 }
 
-pub fn dpl_df0<T>(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dpl_df0(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     let f = f.abs();
@@ -208,7 +205,7 @@ where
                 * smooth_step_prime(f - f0, w))
 }
 
-pub fn dps_model_df0_t<T>(
+pub fn dps_model_df0_t(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -220,8 +217,8 @@ pub fn dps_model_df0_t<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -242,7 +239,7 @@ where
     result
 }
 
-pub fn dps_model_df0_ch<T>(
+pub fn dps_model_df0_ch(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -254,8 +251,8 @@ pub fn dps_model_df0_ch<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -276,9 +273,9 @@ where
     result
 }
 
-pub fn dpl_dalpha<T>(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dpl_dalpha(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     let f = f.abs();
@@ -286,7 +283,7 @@ where
     T::one() / two * a.powi(2) * y.powf(alpha / two) * y.ln() * smooth_step(f - f0, w)
 }
 
-pub fn dps_model_dalpha_t<T>(
+pub fn dps_model_dalpha_t(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -298,8 +295,8 @@ pub fn dps_model_dalpha_t<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -320,7 +317,7 @@ where
     result
 }
 
-pub fn dps_model_dalpha_ch<T>(
+pub fn dps_model_dalpha_ch(
     ft: &[T],
     fch: &[T],
     a_t: T,
@@ -332,8 +329,8 @@ pub fn dps_model_dalpha_ch<T>(
     w: T,
     e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
     let x = ft
@@ -354,7 +351,7 @@ where
     result
 }
 
-pub fn dps_model_db<T>(
+pub fn dps_model_db(
     ft: &[T],
     fch: &[T],
     _a_t: T,
@@ -366,8 +363,8 @@ pub fn dps_model_db<T>(
     _w: T,
     _e: T,
 ) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let a_ch=T::one();
     let two = T::one() + T::one();
@@ -380,9 +377,9 @@ where
     result
 }
 
-pub fn ln_xsx<T>(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn ln_xsx(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let two=T::one()+T::one();
     let n_t = x.nrows();
@@ -390,24 +387,24 @@ where
     let mut x_c = x.map(|&x1| Complex::new(x1, T::zero()));
     let mut X = Array2::zeros((n_t, n_ch));
 
-    fft2(&mut x_c.view_mut(), &mut X.view_mut());
+    fft2(x_c.view_mut(), X.view_mut());
 
     X.iter()
         .zip(psd.iter())
-        .map(|(y, &p)| y.norm_sqr() / p / T::from_usize(n_t * n_ch).unwrap())
+        .map(|(y, &p)| y.norm_sqr() / p )
         .fold(T::zero(), |x, y| x + y)
 }
 
-pub fn ln_det_sigma<T>(psd: ArrayView2<T>) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn ln_det_sigma(psd: ArrayView2<T>) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     psd.iter().map(|x| x.ln()).fold(T::zero(), |x, y| x + y)
 }
 
-pub fn mvn_ln_pdf<T>(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn mvn_ln_pdf(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     let n_t = x.nrows();
@@ -418,49 +415,49 @@ where
     -T::from_usize(n_t*n_ch).unwrap()/two*(two*T::PI()).ln() //k/2*ln(2pi)
 }
 
-pub fn dhalf_lndet_dps<T>(psd: ArrayView2<T>) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dhalf_lndet_dps(psd: ArrayView2<T>) -> Array2<T>
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let two = T::one() + T::one();
     psd.map(|&p| T::one() / p / two)
 }
 
-pub fn dhalf_ln_xsx_dx<T>(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dhalf_ln_xsx_dx(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let n_t = x.nrows();
     let n_ch = x.ncols();
     let mut x_c = x.map(|&x| Complex::<T>::from(x));
     let mut X = Array2::zeros((n_t, n_ch));
-    fft2(&mut x_c.view_mut(), &mut X.view_mut());
+    fft2(x_c.view_mut(), X.view_mut());
     let mut px = X / psd;
 
     let mut fpx = Array2::zeros((n_t, n_ch));
-    ifft2(&mut px.view_mut(), &mut fpx.view_mut());
+    ifft2(px.view_mut(), fpx.view_mut());
     fpx.map(|&x| x.re)
 }
 
-pub fn dhalf_ln_xsx_dp<T>(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn dhalf_ln_xsx_dp(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let n_t = x.nrows();
     let n_ch = x.ncols();
     let two = T::one() + T::one();
     let mut x_c = x.map(|&x| Complex::<T>::from(x));
     let mut X = Array2::zeros((n_t, n_ch));
-    fft2(&mut x_c.view_mut(), &mut X.view_mut());
+    fft2(x_c.view_mut(), X.view_mut());
     //println!("psd={:?}", psd);
     let mut result = Array2::<T>::zeros((n_t, n_ch));
-    azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two/T::from_usize(n_t*n_ch).unwrap());
+    azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two);
     result
 }
 
-pub fn mvn_ln_pdf_grad<T>(x: ArrayView2<T>, psd: ArrayView2<T>) -> (Array2<T>, Array2<T>)
-where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+pub fn mvn_ln_pdf_grad(x: ArrayView2<T>, psd: ArrayView2<T>) -> (Array2<T>, Array2<T>)
+//where
+//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let dydx = -dhalf_ln_xsx_dx(x, psd);
     let dydp = -dhalf_ln_xsx_dp(x, psd) - dhalf_lndet_dps(psd);
@@ -618,15 +615,15 @@ pub fn ln_likelihood_grad(
     (dlnpdx, dlnpdp.to_vec())
 }
 
-pub fn psd2cov<T>(x: &[T], n_t: usize, n_ch: usize) -> Array2<T>
-where
+pub fn psd2cov(x: &[T], n_t: usize, n_ch: usize) -> Array2<T>
+where/*
     T: Float
         + FloatConst
         + NumAssign
         + std::fmt::Debug
         + FFTnum
         + From<u32>
-        + std::default::Default,
+        + std::default::Default,*/
 {
     //let n=x.len();
     let x_c = Array1::from(x.iter().map(|&x| Complex::<T>::from(x)).collect::<Vec<_>>());
@@ -634,13 +631,13 @@ where
 
     let mut X = Array2::zeros((n_t, n_ch));
 
-    ifft2(&mut x_c.view_mut(), &mut X.view_mut());
+    ifft2(x_c.view_mut(), X.view_mut());
     X.map(|&x| x.re)
 }
 
-pub fn circulant_matrix<T>(x: &[T]) -> Array2<T>
+pub fn circulant_matrix(x: &[T]) -> Array2<T>
 where
-    T: Copy,
+//    T: Copy,
 {
     let n = x.len();
     let mut result = unsafe { Array2::uninitialized((n, n)) };
@@ -655,9 +652,9 @@ where
     result
 }
 
-pub fn circulant_block_matrix<T>(x: &[ArrayView2<T>]) -> Array2<T>
+pub fn circulant_block_matrix(x: &[ArrayView2<T>]) -> Array2<T>
 where
-    T: Copy,
+//    T: Copy,
 {
     let n = x.len();
     let nc1 = x[0].ncols();
@@ -677,15 +674,15 @@ where
     result
 }
 
-pub fn psd2cov_mat<T>(x: &[T], n_t: usize, n_ch: usize) -> Array2<T>
+pub fn psd2cov_mat(x: &[T], n_t: usize, n_ch: usize) -> Array2<T>
 where
-    T: Float
+/*    T: Float
         + FloatConst
         + NumAssign
         + std::fmt::Debug
         + FFTnum
         + From<u32>
-        + std::default::Default,
+        + std::default::Default,*/
 {
     let cov = flatten_order_f(psd2cov(x, n_t, n_ch).view()).to_vec();
     let xb = cov
@@ -884,8 +881,9 @@ mod tests {
         );
 
         let (gx, gp) = super::mvn_ln_pdf_grad(x.view(), psd.view());
-        println!("c2: {} {}", (lp2 - lp1) / delta, gp[m]);
-        assert!(((lp2 - lp1) / delta - gp[m]).abs() < 1e-5);
+        println!("c2: {} {} {}", (lp2 - lp1) / delta, gp[m],
+        ((lp2 - lp1) / delta - gp[m]).abs());
+        assert!(((lp2 - lp1) / delta - gp[m]).abs() < 2e-5);
     }
 
     #[test]
@@ -914,7 +912,7 @@ mod tests {
 
         let (gx, gp) = super::mvn_ln_pdf_grad(x.view(), psd.view());
         println!("C1: {} {}", (lp2 - lp1) / delta, gx[m]);
-        assert!(((lp2 - lp1) / delta - gx[m]).abs() < 5e-5);
+        assert!(((lp2 - lp1) / delta - gx[m]).abs() < 5e-4);
     }
 
     #[test]

@@ -8,6 +8,8 @@ rand = '0.7.3'
 rand_distr='0.2.2'
 rayon='1.3.0'
 ctrlc='3.1.4'
+fftw = '0.6.0'
+
 
 [dependencies.fftn]
 path = '../fftn'

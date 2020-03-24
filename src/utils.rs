@@ -2,7 +2,14 @@
 #![allow(clippy::many_single_char_names)]
 use std::default::Default;
 //use rustfft::{FFTnum, FFTplanner};
+use fftw::plan::C2CPlan64;
+use fftw::plan::C2CPlan;
+use fftw::types::{Flag, Sign};
+
+
 use crate::mathematica::{arctan, log, powerf, poweri};
+
+
 use fftn::{fft, ifft, Complex, FFTnum};
 use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
@@ -274,4 +281,22 @@ where
     }
     assert_eq!(n, x.len());
     result
+}
+
+pub fn fft2(mut in_data: ArrayViewMut2<Complex<f64>>, 
+            mut out_data: ArrayViewMut2<Complex<f64>>){
+    let mut plan=C2CPlan64::new(&[in_data.nrows(),in_data.ncols()], in_data.as_slice_mut().unwrap(), out_data.as_slice_mut().unwrap(), 
+    Sign::Forward, Flag::Estimate).unwrap();
+    plan.c2c(&mut in_data.as_slice_mut().unwrap(), &mut out_data.as_slice_mut().unwrap());
+    let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt());
+    out_data/=n;
+}
+
+pub fn ifft2(mut in_data: ArrayViewMut2<Complex<f64>>, 
+    mut out_data: ArrayViewMut2<Complex<f64>>){
+    let mut plan=C2CPlan64::new(&[in_data.nrows(),in_data.ncols()], in_data.as_slice_mut().unwrap(), out_data.as_slice_mut().unwrap(), 
+    Sign::Backward, Flag::Estimate).unwrap();
+    plan.c2c(&mut in_data.as_slice_mut().unwrap(), &mut out_data.as_slice_mut().unwrap());
+    let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt());
+    out_data/=n;
 }

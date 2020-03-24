@@ -5,12 +5,14 @@ use fftn::{fft2, ifft, ifft2};
 use ndarray::Array1;
 use ndarray::Array2;
 use num_complex::Complex;
-use num_traits::{Float, FloatConst, NumAssign, NumCast};
+use num_traits::{Float, FloatConst, NumAssign, NumCast, One, Zero, cast::FromPrimitive, };
 use rand::Rng;
 use rand_distr::Distribution;
 use rand_distr::StandardNormal;
-pub fn gen_noise<T, U>(ntod: usize, psp: &[T], rng: &mut U, dt: T) -> Vec<T>
+type T=f64;
+pub fn gen_noise<U>(ntod: usize, psp: &[T], rng: &mut U, dt: T) -> Vec<T>
 where
+/*
     T: Float
         + NumCast
         + FloatConst
@@ -18,6 +20,7 @@ where
         + fftn::FFTnum
         + std::convert::From<u32>
         + NumAssign,
+        */
     StandardNormal: Distribution<T>,
     U: Rng,
 {
@@ -59,15 +62,16 @@ where
     noise.into_iter().map(|x| x.re).collect()
 }
 
-pub fn noise2d_psd<T>(n_t: usize, n_ch: usize, psp: &[T], dt: T) -> Array2<T>
+pub fn noise2d_psd(n_t: usize, n_ch: usize, psp: &[T], dt: T) -> Array2<T>
 where
+/*
     T: Float
         + NumCast
         + FloatConst
         + std::fmt::Debug
         + fftn::FFTnum
         + std::convert::From<u32>
-        + NumAssign,
+        + NumAssign,*/
 {
     let ft_min = T::one() / (T::from_usize(n_t).unwrap() * dt);
     let fch_min = T::one() / T::from_usize(n_ch).unwrap();
@@ -103,55 +107,56 @@ where
     )
 }
 
-pub fn white1d<T, U>(n_t: usize, rng: &mut U, sigma: T) -> Array1<T>
+pub fn white1d<U>(n_t: usize, rng: &mut U, sigma: T) -> Array1<T>
 where
+/*
     T: Float
         + NumCast
         + FloatConst
         + std::fmt::Debug
         + fftn::FFTnum
         + std::convert::From<u32>
-        + NumAssign,
+        + NumAssign,*/
     StandardNormal: Distribution<T>,
     U: Rng,
 {
     let mut white = Array1::<T>::zeros((n_t,));
     for i in 0..n_t {
-        white[i] = rng.sample(StandardNormal) * sigma;
+        white[i] = rng.sample::<T, StandardNormal>(StandardNormal) * sigma;
     }
     white
 }
 
-pub fn white2d<T, U>(n_t: usize, n_ch: usize, rng: &mut U, sigma: T) -> Array2<T>
-where
+pub fn white2d<U>(n_t: usize, n_ch: usize, rng: &mut U, sigma: T) -> Array2<T>
+where/*
     T: Float
         + NumCast
         + FloatConst
         + std::fmt::Debug
         + fftn::FFTnum
         + std::convert::From<u32>
-        + NumAssign,
+        + NumAssign,*/
     StandardNormal: Distribution<T>,
     U: Rng,
 {
     let mut white = Array2::<T>::zeros((n_t, n_ch));
     for i in 0..n_t {
         for j in 0..n_ch {
-            white[(i, j)] = rng.sample(StandardNormal) * sigma;
+            white[(i, j)] = rng.sample::<T, StandardNormal>(StandardNormal) * sigma;
         }
     }
     white
 }
 
-pub fn gen_noise_2d<T, U>(n_t: usize, n_ch: usize, psp: &[T], rng: &mut U, dt: T) -> Array2<T>
-where
+pub fn gen_noise_2d<U>(n_t: usize, n_ch: usize, psp: &[T], rng: &mut U, dt: T) -> Array2<T>
+where/*
     T: Float
         + NumCast
         + FloatConst
         + std::fmt::Debug
         + fftn::FFTnum
         + std::convert::From<u32>
-        + NumAssign,
+        + NumAssign,*/
     StandardNormal: Distribution<T>,
     U: Rng,
 {
