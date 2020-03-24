@@ -580,14 +580,14 @@ pub fn logprob_ana_grad(
     //println!("aaa {} {}", psd.nrows(), psd.ncols());
 
     let (gx, gp) = ln_likelihood_grad(x, tod, psd.view(), ptr_mat, n_t, n_ch);
-    let gp = LsVec(gp);
+    //let gp = LsVec(gp);
     let g_ps_param = vec![
-        gp.dot(&LsVec(flatten_order_f(dpsd_da_t.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_df0_t.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_dalpha_t.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_df0_ch.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_dalpha_ch.view()).to_vec())),
-        gp.dot(&LsVec(flatten_order_f(dpsd_db.view()).to_vec())),
+        (&gp*&dpsd_da_t).sum(),
+        (&gp*&dpsd_df0_t).sum(),
+        (&gp*&dpsd_dalpha_t).sum(),
+        (&gp*&dpsd_df0_ch).sum(),
+        (&gp*&dpsd_dalpha_ch).sum(),
+        (&gp*&dpsd_db).sum(),
     ];
     (gx, g_ps_param)
 }
@@ -599,7 +599,7 @@ pub fn ln_likelihood_grad(
     ptr_mat: &CsMat<f64>,
     n_t: usize,
     n_ch: usize,
-) -> (Vec<f64>, Vec<f64>) {
+) -> (Vec<f64>, Array2<f64>) {
     let noise = &ArrayView1::from(y) - &sp_mul_a1(&ptr_mat, ArrayView1::from(x));
 
     let noise_2d = deflatten_order_f(noise.view(), n_t, n_ch);
@@ -609,11 +609,11 @@ pub fn ln_likelihood_grad(
     let (dlnpdn, dlnpdp) = mvn_ln_pdf_grad(noise_2d.view(), psd);
 
     let dlnpdn = flatten_order_f(dlnpdn.view());
-    let dlnpdp = flatten_order_f(dlnpdp.view());
+    //let dlnpdp = flatten_order_f(dlnpdp.view());
 
     let dlnpdx = (-sp_mul_a1(&ptr_mat.transpose_view(), ArrayView1::from(&dlnpdn))).to_vec();
 
-    (dlnpdx, dlnpdp.to_vec())
+    (dlnpdx, dlnpdp)
 }
 
 pub fn psd2cov(x: &[T], n_t: usize, n_ch: usize) -> Array2<T>

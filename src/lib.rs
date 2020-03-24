@@ -11,3 +11,4 @@ pub mod naive;
 pub mod naive_mo;
 pub mod noise;
 pub mod utils;
+pub mod ps_model;

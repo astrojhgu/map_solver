@@ -73,7 +73,7 @@ fn main() {
             f * dx_sigma
         });
 
-        let dp_1d = flatten_order_f(dp.view());
+        //let dp_1d = flatten_order_f(dp.view());
 
         let answer2 = &answer + &dx;
         let psd2 = &psd + &dp;
@@ -98,7 +98,7 @@ fn main() {
             n_ch,
         );
 
-        let diff2 = ArrayView1::from(&gx).dot(&dx) + ArrayView1::from(&gp).dot(&dp_1d);
+        let diff2 = ArrayView1::from(&gx).dot(&dx) + (&gp*&dp).sum();
         println!("{} {} {}", diff, diff2, (diff2 - diff).abs());
     }
 }
