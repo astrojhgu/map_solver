@@ -169,7 +169,7 @@ where/*
     }
 
     let mut fwhite = Array2::zeros((n_t, n_ch));
-    fft2(&mut white.view_mut(), &mut fwhite.view_mut());
+    fft2(white.view_mut(), fwhite.view_mut());
 
     let ft_min = T::one() / (T::from_usize(n_t).unwrap() * dt);
     let fch_min = T::one() / T::from_usize(n_ch).unwrap();
@@ -206,6 +206,6 @@ where/*
     .map(|&x| x.sqrt());
     fwhite = &fwhite * &psm;
     let mut result = Array2::zeros((n_t, n_ch));
-    ifft2(&mut fwhite.view_mut(), &mut result.view_mut());
+    ifft2(fwhite.view_mut(), result.view_mut());
     result.map(|&x| x.re)
 }

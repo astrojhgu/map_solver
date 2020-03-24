@@ -10,7 +10,8 @@ use rayon::iter::ParallelIterator;
 //use rustfft::{FFTnum, FFTplanner};
 use crate::mathematica::{arctan, log, powerf, poweri};
 
-use crate::utils::{fft2, ifft2};
+//use crate::utils::{fft2, ifft2};
+use fftn::{fft2, ifft2};
 use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
 use ndarray::{azip, s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use num_traits::{Float, FloatConst, NumAssign, Zero, One, cast::FromPrimitive};
@@ -391,7 +392,7 @@ pub fn ln_xsx(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
 
     X.iter()
         .zip(psd.iter())
-        .map(|(y, &p)| y.norm_sqr() / p )
+        .map(|(y, &p)| y.norm_sqr() / p / T::from_usize(n_t * n_ch).unwrap())
         .fold(T::zero(), |x, y| x + y)
 }
 
@@ -451,7 +452,7 @@ pub fn dhalf_ln_xsx_dp(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
     fft2(x_c.view_mut(), X.view_mut());
     //println!("psd={:?}", psd);
     let mut result = Array2::<T>::zeros((n_t, n_ch));
-    azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two);
+    azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two/T::from_usize(n_t*n_ch).unwrap());
     result
 }
 
