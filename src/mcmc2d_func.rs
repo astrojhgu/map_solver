@@ -378,6 +378,42 @@ pub fn dps_model_db(
     result
 }
 
+pub fn ps_model_grad(ft: &[T],
+    fch: &[T],
+    a_t: T,
+    ft_0: T,
+    alpha_t: T,
+    fch_0: T,
+    alpha_ch: T,
+    b: T,
+    w: T,
+    e: T)->Vec<Array2<T>>    
+{
+    let dpsd_da_t = dps_model_da_t(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+
+    let dpsd_df0_t = dps_model_df0_t(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+    let dpsd_df0_ch = dps_model_df0_ch(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+
+    let dpsd_dalpha_t = dps_model_dalpha_t(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+    let dpsd_dalpha_ch = dps_model_dalpha_ch(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+
+    let dpsd_db = dps_model_db(
+        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
+    );
+
+    vec![dpsd_da_t, dpsd_df0_t, dpsd_dalpha_t, dpsd_df0_ch, dpsd_dalpha_ch, dpsd_db]
+}
+
 pub fn ln_xsx(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
 //where
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
@@ -555,40 +591,14 @@ pub fn logprob_ana_grad(
         &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
     );
 
-    let dpsd_da_t = dps_model_da_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-
-    let dpsd_df0_t = dps_model_df0_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-    let dpsd_df0_ch = dps_model_df0_ch(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-
-    let dpsd_dalpha_t = dps_model_dalpha_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-    let dpsd_dalpha_ch = dps_model_dalpha_ch(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-
-    let dpsd_db = dps_model_db(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
 
     //println!("aaa {} {}", psd.nrows(), psd.ncols());
 
     let (gx, gp) = ln_likelihood_grad(x, tod, psd.view(), ptr_mat, n_t, n_ch);
     //let gp = LsVec(gp);
-    let g_ps_param = vec![
-        (&gp*&dpsd_da_t).sum(),
-        (&gp*&dpsd_df0_t).sum(),
-        (&gp*&dpsd_dalpha_t).sum(),
-        (&gp*&dpsd_df0_ch).sum(),
-        (&gp*&dpsd_dalpha_ch).sum(),
-        (&gp*&dpsd_db).sum(),
-    ];
+    let psm_grad=ps_model_grad(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
+    let g_ps_param:Vec<_>=psm_grad.into_iter().map(|x| (&x*&gp).sum()).collect();
+
     (gx, g_ps_param)
 }
 
