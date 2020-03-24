@@ -2,15 +2,16 @@ extern crate map_solver;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-
+use rand::Rng;
 use rand::thread_rng;
-
+use rand_distr::StandardNormal;
 use std::fs::File;
 
 use scorus::linear_space::type_wrapper::LsVec;
-use scorus::mcmc::hmc::naive::sample;
-use scorus::mcmc::hmc::naive::HmcParam;
-
+use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
+use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
+use scorus::mcmc::hmc::naive::{sample, sample_ensemble_pt as hmc_sample, HmcParam};
+use scorus::mcmc::utils::swap_walkers;
 use ndarray::Array1;
 
 use linear_solver::io::RawMM;
@@ -67,12 +68,53 @@ fn main() {
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
-    for _i in 0..16 {
+    for _i in 0..16 { 
         let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
         let noise = flatten_order_f(noise.view());
         let total_tod = &tod + &noise;
         problem = problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     }
+
+    let flag_psp:Vec<_>= (0..q.0.len())
+    .map(|x| if x < nx { SSFlag::Fixed } else { SSFlag::Free })
+    .collect();
+
+    let (q_psp, q_rest)=split_ss(&q, &flag_psp);
+    println!("{:?}", q_psp);
+
+    let mut ensemble:Vec<_>=(0..96).map(|i|{
+        if i==0{
+            LsVec(q_psp.clone())
+        }else{
+            LsVec(q_psp.iter().map(|x: &f64| *x+0.01*rng.sample::<f64, StandardNormal>(StandardNormal)).collect())
+        }
+        
+    }).collect();
+
+    let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
+
+    let lp_f=problem.get_logprob(&q_rest);
+    let mut lp:Vec<_>=ensemble.iter().map(|x| lp_f(x)).collect();
+
+    println!("{:?}", lp);
+    let mut ufs=UpdateFlagSpec::All;
+    
+    for i in 0..16{
+        emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
+        let mut max_i=0;
+        let mut max_lp=std::f64::NEG_INFINITY;
+        for (j, &x) in lp.iter().enumerate(){
+            if x<max_lp{
+                max_lp=x;
+                max_i=j;
+            }
+        }
+        println!("{} {:?} {}", max_i, ensemble[max_i], lp[max_i]);
+    }
+    
+    println!("{:?}", lp);
+
+    /*
 
     let mut epsilon_p = 0.003;
     let mut epsilon_s = 0.003;
@@ -199,4 +241,5 @@ fn main() {
             break;
         }
     }
+    */
 }

@@ -9,8 +9,8 @@ use fftw::types::{Flag, Sign};
 
 use crate::mathematica::{arctan, log, powerf, poweri};
 
-
-use fftn::{fft, ifft, Complex, FFTnum};
+use num_complex::Complex;
+//use fftn::{fft, ifft, Complex, FFTnum};
 use linear_solver::utils::{sp_mul_a1, sp_mul_a2};
 use ndarray::{s, Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut2};
 use num_traits::{Float, FloatConst, NumAssign, Zero};
@@ -18,9 +18,11 @@ use scorus::linear_space::traits::InnerProdSpace;
 use scorus::linear_space::type_wrapper::LsVec;
 use sprs::CsMat;
 
-pub fn rfft<T>(indata: &[T]) -> Vec<Complex<T>>
+type T=f64;
+
+pub fn rfft(indata: &[T]) -> Vec<Complex<T>>
 where
-    T: FFTnum + Float + From<u32> + std::fmt::Debug,
+    //T: FFTnum + Float + From<u32> + std::fmt::Debug,
 {
     let mut cindata: Vec<Complex<T>> = indata.iter().map(|&x| Complex::from(x)).collect();
     let mut result = vec![Complex::<T>::new(T::zero(), T::zero()); indata.len()];
@@ -30,9 +32,9 @@ where
     result
 }
 
-pub fn irfft<T>(indata: &[Complex<T>]) -> Vec<T>
+pub fn irfft(indata: &[Complex<T>]) -> Vec<T>
 where
-    T: FFTnum + From<u32> + Float,
+    //T: FFTnum + From<u32> + Float,
 {
     let n = (indata.len() - 1) * 2;
     let mut cindata = Vec::<Complex<T>>::with_capacity(n);
@@ -49,9 +51,9 @@ where
     result.iter().map(|&x| x.re).collect()
 }
 
-pub fn rfft2<T>(indata: ArrayView2<T>) -> Array2<Complex<T>>
+pub fn rfft2(indata: ArrayView2<T>) -> Array2<Complex<T>>
 where
-    T: FFTnum + From<u32> + Float,
+    //T: FFTnum + From<u32> + Float,
 {
     let h = indata.nrows();
     let w = indata.ncols();
@@ -67,9 +69,9 @@ where
     result
 }
 
-pub fn irfft2<T>(indata: ArrayView2<Complex<T>>) -> Array2<T>
+pub fn irfft2(indata: ArrayView2<Complex<T>>) -> Array2<T>
 where
-    T: FFTnum + From<u32> + Float + std::fmt::Debug,
+    //T: FFTnum + From<u32> + Float + std::fmt::Debug,
 {
     let h = indata.nrows();
     let w = indata.ncols();
@@ -91,9 +93,9 @@ where
     rresult
 }
 
-pub fn circmat_x_vec<T>(m: &[T], x: &[T]) -> Vec<T>
+pub fn circmat_x_vec(m: &[T], x: &[T]) -> Vec<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + Zero + FFTnum + From<u32>,
+    //T: Float + FloatConst + NumAssign + std::fmt::Debug + Zero + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -103,9 +105,9 @@ where
     irfft(&c)
 }
 
-pub fn circmat_x_mat<T>(m: &[T], x: ArrayView2<T>) -> Array2<T>
+pub fn circmat_x_mat(m: &[T], x: ArrayView2<T>) -> Array2<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+    //T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -131,9 +133,9 @@ where
     result
 }
 
-pub fn circmat_inv_x_mat<T>(m: &[T], x: ArrayView2<T>) -> Array2<T>
+pub fn circmat_inv_x_mat(m: &[T], x: ArrayView2<T>) -> Array2<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+    //T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut fft = chfft::RFft1D::new(m.len());
     let a = rfft(m);
@@ -175,9 +177,9 @@ where
     result
 }
 
-pub fn deconv<T>(data: &[T], kernel: &[Complex<T>]) -> Vec<T>
+pub fn deconv(data: &[T], kernel: &[Complex<T>]) -> Vec<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+    //T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let mut rfft = chfft::RFft1D::<T>::new(data.len());
     let mut s = rfft(data);
@@ -223,9 +225,9 @@ where
     result
 }
 
-pub fn deconv2<T>(data: ArrayView2<T>, kernel: ArrayView2<Complex<T>>) -> Array2<T>
+pub fn deconv2(data: ArrayView2<T>, kernel: ArrayView2<Complex<T>>) -> Array2<T>
 where
-    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
+    //T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let mut s = rfft2(data);
     assert!(s.shape() == kernel.shape());
@@ -297,7 +299,30 @@ pub fn ifft2(mut in_data: ArrayViewMut2<Complex<f64>>,
     let mut plan=C2CPlan64::new(&[in_data.nrows(),in_data.ncols()], in_data.as_slice_mut().unwrap(), out_data.as_slice_mut().unwrap(), 
     Sign::Backward, Flag::Estimate).unwrap();
     plan.c2c(&mut in_data.as_slice_mut().unwrap(), &mut out_data.as_slice_mut().unwrap());
-    let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt()
-);
+    let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt());
     out_data/=n;
+}
+
+pub fn fft(in_data: &mut [Complex<f64>], 
+    out_data: &mut [Complex<f64>]){
+    let mut plan=C2CPlan64::new(&[in_data.len()], in_data, out_data, 
+    Sign::Forward, Flag::Estimate).unwrap();
+    plan.c2c(in_data, out_data);
+    let n=Complex::<f64>::from((in_data.len() as f64).sqrt());
+    //out_data/=n;
+    for x in out_data.iter_mut(){
+        *x/=n;
+    }
+}
+
+pub fn ifft(in_data: &mut [Complex<f64>], 
+    out_data: &mut [Complex<f64>]){
+    let mut plan=C2CPlan64::new(&[in_data.len()], in_data, out_data, 
+    Sign::Backward, Flag::Estimate).unwrap();
+    plan.c2c(in_data, out_data);
+    let n=Complex::<f64>::from((in_data.len() as f64).sqrt());
+    //out_data/=n;
+    for x in out_data.iter_mut(){
+        *x/=n;
+    }
 }
