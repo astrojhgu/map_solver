@@ -74,7 +74,7 @@ fn main() {
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
-    for _i in 0..1 { 
+    for _i in 0..16 { 
         let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0);
         let noise = flatten(noise.view());
         let total_tod = &tod + &noise;
