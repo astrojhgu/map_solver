@@ -75,7 +75,7 @@ fn main() {
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
     for _i in 0..1 { 
-        let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
+        let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0);
         let noise = flatten_order_f(noise.view());
         let total_tod = &tod + &noise;
         problem = problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
