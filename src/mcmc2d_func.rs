@@ -22,7 +22,7 @@ use scorus::linear_space::type_wrapper::LsVec;
 use sprs::CsMat;
 //use crate::
 
-use crate::utils::{deflatten_order_f, flatten_order_f};
+use crate::utils::{deflatten, flatten};
 pub const DT: f64 = 2.0;
 pub const FMAX: f64 = 0.5 / DT;
 type T=f64;
@@ -60,10 +60,10 @@ pub fn ln_xsx(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     //let two=T::one()+T::one();
-    let n_t = x.nrows();
-    let n_ch = x.ncols();
+    let n_t = x.ncols();
+    let n_ch = x.nrows();
     let mut x_c = x.map(|&x1| Complex::new(x1, T::zero()));
-    let mut X = Array2::zeros((n_t, n_ch));
+    let mut X = Array2::zeros((n_ch, n_t));
 
     fft2(x_c.view_mut(), X.view_mut());
 
@@ -105,14 +105,14 @@ pub fn dhalf_ln_xsx_dx(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
 //where
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
-    let n_t = x.nrows();
-    let n_ch = x.ncols();
+    let n_ch = x.nrows();
+    let n_t = x.ncols();
     let mut x_c = x.map(|&x| Complex::<T>::from(x));
-    let mut X = Array2::zeros((n_t, n_ch));
+    let mut X = Array2::zeros((n_ch, n_t));
     fft2(x_c.view_mut(), X.view_mut());
     let mut px = X / psd;
 
-    let mut fpx = Array2::zeros((n_t, n_ch));
+    let mut fpx = Array2::zeros((n_ch, n_t));
     ifft2(px.view_mut(), fpx.view_mut());
     fpx.map(|&x| x.re)
 }
@@ -121,14 +121,14 @@ pub fn dhalf_ln_xsx_dp(x: ArrayView2<T>, psd: ArrayView2<T>) -> Array2<T>
 //where
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
-    let n_t = x.nrows();
-    let n_ch = x.ncols();
+    let n_t = x.ncols();
+    let n_ch = x.nrows();
     let two = T::one() + T::one();
     let mut x_c = x.map(|&x| Complex::<T>::from(x));
-    let mut X = Array2::zeros((n_t, n_ch));
+    let mut X = Array2::zeros((n_ch, n_t));
     fft2(x_c.view_mut(), X.view_mut());
     //println!("psd={:?}", psd);
-    let mut result = Array2::<T>::zeros((n_t, n_ch));
+    let mut result = Array2::<T>::zeros((n_ch, n_t));
     azip!((r in &mut result, &x in &X, &p in &psd) *r = -x.norm_sqr()/p.powi(2)/two);
     result
 }
@@ -152,7 +152,7 @@ pub fn ln_likelihood(
 ) -> f64 {
     let noise = &ArrayView1::from(y) - &sp_mul_a1(&ptr_mat, ArrayView1::from(x));
 
-    let noise_2d = deflatten_order_f(noise.view(), n_t, n_ch);
+    let noise_2d = deflatten(noise.view(), n_ch, n_t);
 
     mvn_ln_pdf(noise_2d.view(), psd)
 }
@@ -173,8 +173,6 @@ pub fn logprob_ana(
     let n_t=ft.len();
     let n_ch=fch.len();
     
-    linear_solver::io::RawMM::from_array2(psd.view()).to_file("psd.mtx");
-
     ln_likelihood(x, tod, psd.view(), ptr_mat, n_t, n_ch)
 }
 
@@ -189,7 +187,6 @@ pub fn logprob_ana_grad(
 ) -> (Vec<f64>, Vec<f64>) {
     assert_eq!(psp.len(), 6);
 
-    let b = psp[5];
     let n_t=ft.len();
     let n_ch=fch.len();
 
@@ -218,13 +215,13 @@ pub fn ln_likelihood_grad(
 ) -> (Vec<f64>, Array2<f64>) {
     let noise = &ArrayView1::from(y) - &sp_mul_a1(&ptr_mat, ArrayView1::from(x));
 
-    let noise_2d = deflatten_order_f(noise.view(), n_t, n_ch);
+    let noise_2d = deflatten(noise.view(), n_ch, n_t);
     //println!("{} {}", noise_2d.nrows(), noise_2d.ncols());
     //println!("{} {}", psd.nrows(), psd.ncols());
 
     let (dlnpdn, dlnpdp) = mvn_ln_pdf_grad(noise_2d.view(), psd);
 
-    let dlnpdn = flatten_order_f(dlnpdn.view());
+    let dlnpdn = flatten(dlnpdn.view());
     //let dlnpdp = flatten_order_f(dlnpdp.view());
 
     let dlnpdx = (-sp_mul_a1(&ptr_mat.transpose_view(), ArrayView1::from(&dlnpdn))).to_vec();
@@ -244,9 +241,9 @@ where/*
 {
     //let n=x.len();
     let x_c = Array1::from(x.iter().map(|&x| Complex::<T>::from(x)).collect::<Vec<_>>());
-    let mut x_c = deflatten_order_f(x_c.view(), n_t, n_ch);
+    let mut x_c = deflatten(x_c.view(), n_ch, n_t);
 
-    let mut X = Array2::zeros((n_t, n_ch));
+    let mut X = Array2::zeros((n_ch, n_t));
 
     ifft2(x_c.view_mut(), X.view_mut());
     X.map(|&x| x.re)
@@ -301,7 +298,7 @@ where
         + From<u32>
         + std::default::Default,*/
 {
-    let cov = flatten_order_f(psd2cov(x, n_t, n_ch).view()).to_vec();
+    let cov = flatten(psd2cov(x, n_ch, n_t).view()).to_vec();
     let xb = cov
         .chunks(n_t)
         .map(|x1| circulant_matrix(x1))
@@ -341,7 +338,7 @@ mod tests {
         let a = get_psd();
         let n_t = a.nrows();
         let n_ch = a.ncols();
-        (super::flatten_order_f(a.view()).to_vec(), n_t, n_ch)
+        (super::flatten(a.view()).to_vec(), n_t, n_ch)
     }
 
     //#[test]
@@ -353,8 +350,8 @@ mod tests {
         let mut x = ndarray::Array::from(vec![0.0; n_t * n_ch]);
         x[100] = 1.0;
         let brute_force_answer = x.dot(&cov_mat.dot(&x));
-        let x = super::deflatten_order_f(x.view(), n_t, n_ch);
-        let psd = super::deflatten_order_f(ndarray::ArrayView1::from(&psd), n_t, n_ch);
+        let x = super::deflatten(x.view(), n_ch, n_t);
+        let psd = super::deflatten(ndarray::ArrayView1::from(&psd), n_ch, n_t);
         RawMM::from_array2(psd.view()).to_file("psd.mtx");
         let smart_answer = super::ln_xsx(x.view(), psd.view());
         //println!("{} {}", smart_answer, brute_force_answer);

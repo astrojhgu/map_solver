@@ -15,19 +15,19 @@ use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
 use map_solver::ps_model::PsModel;
 use map_solver::pl_ps::PlPs;
-
+use map_solver::utils::{flatten, transpose};
 
 fn main() {
     let mut rng = thread_rng();
 
     let ptr_mat = RawMM::<f64>::from_file("ideal_data/ptr_32_ch.mtx").to_sparse();
-    let tod = RawMM::<f64>::from_file("ideal_data/tod_32_ch.mtx").to_array2();
-    let n_t = tod.nrows();
-    let n_ch = tod.ncols();
-    let tod = flatten_order_f(tod.view());
-    let answer = flatten_order_f(
-        RawMM::<f64>::from_file("ideal_data/answer_32_ch.mtx")
-            .to_array2()
+    let tod = transpose(RawMM::<f64>::from_file("ideal_data/tod_32_ch.mtx").to_array2().view());
+    let n_t = tod.ncols();
+    let n_ch = tod.nrows();
+    let tod = flatten(tod.view());
+    let answer = flatten(
+        transpose(RawMM::<f64>::from_file("ideal_data/answer_32_ch.mtx")
+            .to_array2().view())
             .view(),
     );
 

@@ -49,18 +49,19 @@ pub fn ps_model(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+
+    let x = fch
         .par_iter()
         .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
+    let y = ft
+        .par_iter()
+        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
     let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j] + b2;
         }
     }
@@ -94,18 +95,18 @@ pub fn dps_model_da_t(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_da(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
+    let y = ft
+        .par_iter()
+        .map(|&f| dpl_da(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
     //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -128,18 +129,19 @@ pub fn dps_model_da_ch(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| dpl_da(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
+    let y = ft
+        .par_iter()
+        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
+    
     //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -177,18 +179,18 @@ pub fn dps_model_df0_t(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_df0(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
+    let y = ft
+        .par_iter()
+        .map(|&f| dpl_df0(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
     //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -211,18 +213,18 @@ pub fn dps_model_df0_ch(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| dpl_df0(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let y = ft
+        .par_iter()
+        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
+        //let b2 = b.powi(2);
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -255,18 +257,18 @@ pub fn dps_model_dalpha_t(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_dalpha(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let y = ft
+        .par_iter()
+        .map(|&f| dpl_dalpha(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
+        //let b2 = b.powi(2);
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -289,18 +291,18 @@ pub fn dps_model_dalpha_ch(
 //    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
 {
     let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
+    let x = fch
         .par_iter()
         .map(|&f| dpl_dalpha(f, a_ch, fch_0, alpha_ch, w, e))
         .collect::<Vec<_>>();
+    let y = ft
+        .par_iter()
+        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
+        .collect::<Vec<_>>();
     //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = x[i] * y[j];
         }
     }
@@ -324,9 +326,9 @@ pub fn dps_model_db(
 {
     //let a_ch=T::one();
     let two = T::one() + T::one();
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
+    let mut result = Array2::<T>::zeros((fch.len(), ft.len()));
+    for i in 0..fch.len() {
+        for j in 0..ft.len() {
             result[(i, j)] = two * b;
         }
     }

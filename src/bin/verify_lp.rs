@@ -17,11 +17,14 @@ use ndarray::Array1;
 use linear_solver::io::RawMM;
 use map_solver::mcmc2d::Problem;
 use map_solver::noise::gen_noise_2d;
-use map_solver::utils::flatten_order_f;
+
 use map_solver::utils::SSFlag;
 use map_solver::utils::{combine_ss, split_ss};
 use map_solver::mcmc2d_func::{logprob_ana, ln_likelihood, mvn_ln_pdf};
 use map_solver::pl_ps::PlPs;
+use map_solver::utils::{transpose, flatten};
+
+
 const L: usize = 5;
 const NSTEPS: usize = 10;
 
@@ -37,13 +40,13 @@ fn main() {
     let mut rng = thread_rng();
 
     let ptr_mat = RawMM::<f64>::from_file("ideal_data/ptr_32_ch.mtx").to_sparse();
-    let tod = RawMM::<f64>::from_file("ideal_data/tod_32_ch.mtx").to_array2();
-    let n_t = tod.nrows();
-    let n_ch = tod.ncols();
-    let tod = flatten_order_f(tod.view());
-    let answer = flatten_order_f(
-        RawMM::<f64>::from_file("ideal_data/answer_32_ch.mtx")
-            .to_array2()
+    let tod = transpose(RawMM::<f64>::from_file("ideal_data/tod_32_ch.mtx").to_array2().view());
+    let n_t = tod.ncols();
+    let n_ch = tod.nrows();
+    let tod = flatten(tod.view());
+    let answer = flatten(
+        transpose(RawMM::<f64>::from_file("ideal_data/answer_32_ch.mtx")
+            .to_array2().view())
             .view(),
     );
 
@@ -75,7 +78,7 @@ fn main() {
 
     RawMM::from_array2(noise2d.view()).to_file("noise.mtx");
 
-    let noise = flatten_order_f(noise2d.view());
+    let noise = flatten(noise2d.view());
     let total_tod = &tod + &noise;
     problem = problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
 

@@ -69,9 +69,9 @@ where/*
     StandardNormal: Distribution<T>,
     U: Rng,
 {
-    let mut white = Array2::<T>::zeros((n_t, n_ch));
-    for i in 0..n_t {
-        for j in 0..n_ch {
+    let mut white = Array2::<T>::zeros((n_ch, n_t));
+    for i in 0..n_ch {
+        for j in 0..n_t {
             white[(i, j)] = rng.sample::<T, StandardNormal>(StandardNormal) * sigma;
         }
     }
@@ -91,14 +91,14 @@ where/*
     U: Rng,
 {
     assert_eq!(psp.len(), 6);
-    let mut white = Array2::zeros((n_t, n_ch));
-    for i in 0..n_t {
-        for j in 0..n_ch {
+    let mut white = Array2::zeros((n_ch, n_t));
+    for i in 0..n_ch {
+        for j in 0..n_t {
             white[(i, j)] = Complex::new(rng.sample(StandardNormal), T::zero());
         }
     }
 
-    let mut fwhite = Array2::zeros((n_t, n_ch));
+    let mut fwhite = Array2::zeros((n_ch, n_t));
     fft2(white.view_mut(), fwhite.view_mut());
 
     let ft_min = T::one() / (T::from_usize(n_t).unwrap() * dt);
@@ -135,7 +135,7 @@ where/*
     )
     .map(|&x| x.sqrt());
     fwhite = &fwhite * &psm;
-    let mut result = Array2::zeros((n_t, n_ch));
+    let mut result = Array2::zeros((n_ch, n_t));
     ifft2(fwhite.view_mut(), result.view_mut());
     result.map(|&x| x.re)
 }

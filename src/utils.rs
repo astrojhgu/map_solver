@@ -225,6 +225,24 @@ where
     result
 }
 
+pub fn flatten<T>(data: ArrayView2<T>) -> Array1<T>
+where
+    T: Copy + Default + Zero,
+{
+    let n = data.ncols() * data.nrows();
+    //data.t().as_standard_layout().into_owned().into_shape((n,)).unwrap()
+    data.to_owned().into_shape((n,)).unwrap()
+}
+
+pub fn deflatten<T>(data: ArrayView1<T>, nrows: usize, ncols: usize) -> Array2<T>
+where
+    T: Copy + Default + Zero,
+{
+    data.to_owned().into_shape((nrows, ncols)).unwrap()
+    //data.into_shape((ncols,nrows)).unwrap().t().to_owned().as_standard_layout().into_owned()
+}
+
+
 pub fn deconv2(data: ArrayView2<T>, kernel: ArrayView2<Complex<T>>) -> Array2<T>
 where
     //T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
@@ -325,4 +343,16 @@ pub fn ifft(in_data: &mut [Complex<f64>],
     for x in out_data.iter_mut(){
         *x/=n;
     }
+}
+
+pub fn transpose<T>(in_data: ArrayView2<T>)->Array2<T>
+where T: Copy{
+    let mut result = unsafe { Array2::uninitialized((in_data.ncols(), in_data.nrows())) };
+
+    for i in 0..in_data.nrows(){
+        for j in 0..in_data.ncols(){
+            result[(j,i)]=in_data[(i,j)]
+        }
+    }
+    result
 }
