@@ -6,6 +6,9 @@ use rand::Rng;
 use rand::thread_rng;
 use rand_distr::StandardNormal;
 use std::fs::File;
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::IndexedParallelIterator;
+use rayon::iter::ParallelIterator;
 
 use scorus::linear_space::type_wrapper::LsVec;
 use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
@@ -71,7 +74,7 @@ fn main() {
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
-    for _i in 0..1 { 
+    for _i in 0..16 { 
         let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
         let noise = flatten_order_f(noise.view());
         let total_tod = &tod + &noise;
@@ -97,7 +100,9 @@ fn main() {
     let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
 
     let lp_f=problem.get_logprob(&q_rest);
-    let mut lp:Vec<_>=ensemble.iter().map(|x| lp_f(x)).collect();
+    let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
+        println!("{}", i);
+        lp_f(x)}).collect();
 
     eprintln!("{:?}", lp);
     let mut ufs=UpdateFlagSpec::All;
