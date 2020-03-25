@@ -52,9 +52,9 @@ fn main() {
 
     let ft_min = 1.0 / (n_t as f64 * 2.0);
     let fch_min = 1.0 / n_ch as f64;
-    let (a_t, ft_0, alpha_t) = (10.0, ft_min * 20_f64, -1.);
+    let (a_t, ft_0, alpha_t) = (1.0, ft_min * 20_f64, -1.);
     let (fch_0, alpha_ch) = (fch_min * 5_f64, -1.);
-    let b = 1.0;
+    let b = 0.1;
 
     let nx = ptr_mat.cols();
     //let answer=vec![0.0; answer.len()];
