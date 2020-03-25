@@ -11,9 +11,6 @@ ctrlc='3.1.4'
 fftw = '0.6.0'
 
 
-[dependencies.fftn]
-path = '../fftn'
-
 [dependencies.fitsimg]
 git = 'https://github.com/astrojhgu/rust_fitsimg.git'
 

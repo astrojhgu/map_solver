@@ -65,7 +65,7 @@ where
     }
 
     let mut result = Array2::<Complex<T>>::zeros((h, w));
-    fftn::fft2(cindata.view_mut(), result.view_mut());
+    fft2(cindata.view_mut(), result.view_mut());
     result
 }
 
@@ -83,7 +83,7 @@ where
     }
 
     let mut result = Array2::<Complex<T>>::zeros((h, w));
-    fftn::ifft2(cindata.view_mut(), result.view_mut());
+    ifft2(cindata.view_mut(), result.view_mut());
     let mut rresult = Array2::<T>::zeros((h, w));
     for i in 0..h {
         for j in 0..w {

@@ -13,6 +13,9 @@ use map_solver::mcmc2d_func::DT;
 use map_solver::mcmc2d_func::{logprob_ana, logprob_ana_grad};
 use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
+use map_solver::ps_model::PsModel;
+use map_solver::pl_ps::PlPs;
+
 
 fn main() {
     let mut rng = thread_rng();
@@ -33,20 +36,29 @@ fn main() {
     let (a_t, ft_0, alpha_t) = (3.0, ft_min * 20_f64, -1.);
     let (fch_0, alpha_ch) = (fch_min * 5_f64, -1.);
     let b = 0.1;
+    let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
+        .chain(-(n_t as isize) / 2..0)
+        .map(|i| i as f64 * ft_min)
+        .collect();
+    let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
+        .chain(-(n_ch as isize) / 2..0)
+        .map(|i| i as f64 * fch_min)
+        .collect();
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
     let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
     let noise = flatten_order_f(noise.view());
     let total_tod = &tod + &noise;
-
+    let psm=PlPs{};
     let lp1 = logprob_ana(
         answer.as_slice().unwrap(),
         &psd_param,
         total_tod.as_slice().unwrap(),
         &ptr_mat,
-        n_t,
-        n_ch,
+        &ft, 
+        &fch,
+        &psm,
     );
 
     let dx_sigma = 1e-5;
@@ -79,8 +91,9 @@ fn main() {
             &psd_param2,
             total_tod.as_slice().unwrap(),
             &ptr_mat,
-            n_t,
-            n_ch,
+            &ft,
+            &fch,
+            &psm
         );
 
         let diff = lp2 - lp1;
@@ -89,8 +102,9 @@ fn main() {
             &psd_param,
             total_tod.as_slice().unwrap(),
             &ptr_mat,
-            n_t,
-            n_ch,
+            &ft,
+            &fch,
+            &psm
         );
         println!("gx {} gp {}", gx.len(), gp.len());
         let diff2 = ArrayView1::from(&gx).dot(&dx) + ArrayView1::from(&gp).dot(&dp);

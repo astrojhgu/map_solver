@@ -10,8 +10,8 @@ use map_solver::utils::flatten_order_f;
 use linear_solver::io::RawMM;
 use map_solver::mcmc2d_func::DT;
 use map_solver::mcmc2d_func::{ln_likelihood, ln_likelihood_grad};
-
-use map_solver::mcmc2d_func::ps_model;
+use map_solver::ps_model::PsModel;
+use map_solver::pl_ps::PlPs;
 
 fn main() {
     let mut rng = thread_rng();
@@ -47,9 +47,10 @@ fn main() {
     let (a_t, ft_0, alpha_t) = (3.0, ft_min * 2_f64, -1.0);
     let (fch_0, alpha_ch) = (ft_min * 2_f64, -1.0);
     let b = 0.1;
-    let psd = ps_model(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, 1e-9, 1e-9,
-    );
+    let psm=PlPs{};
+    let psp=vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
+    let psd=psm.value(&ft, &fch, &psp);
+    
 
     let lp1 = ln_likelihood(
         answer.as_slice().unwrap(),
@@ -57,7 +58,7 @@ fn main() {
         psd.view(),
         &ptr_mat,
         n_t,
-        n_ch,
+        n_ch
     );
 
     let dx_sigma = 0.000_000_01;
