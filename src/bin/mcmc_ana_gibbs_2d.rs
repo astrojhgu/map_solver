@@ -88,7 +88,7 @@ fn main() {
     let (q_psp, q_rest)=split_ss(&q, &flag_psp);
     println!("{:?}", q_psp);
 
-    let mut ensemble:Vec<_>=(0..96).map(|i|{
+    let mut ensemble:Vec<_>=(0..80).map(|i|{
         if i==0{
             LsVec(q_psp.clone())
         }else{
@@ -98,6 +98,8 @@ fn main() {
     }).collect();
 
     let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
+    let nbeta=beta_list.len();
+    let n_per_beta=ensemble.len()/nbeta;
 
     let lp_f=problem.get_logprob(&q_rest);
     let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
@@ -111,7 +113,7 @@ fn main() {
         emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
         let mut max_i=0;
         let mut max_lp=std::f64::NEG_INFINITY;
-        for (j, &x) in lp.iter().enumerate(){
+        for (j, &x) in lp.iter().enumerate().take(n_per_beta){
             if x>max_lp{
                 max_lp=x;
                 max_i=j;
