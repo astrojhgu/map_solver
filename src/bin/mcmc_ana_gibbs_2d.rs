@@ -13,7 +13,7 @@ use rayon::iter::ParallelIterator;
 use scorus::linear_space::type_wrapper::LsVec;
 use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
 use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
-use scorus::mcmc::hmc::naive::{sample, sample_ensemble_pt as hmc_sample, HmcParam};
+use scorus::mcmc::hmc::naive::{sample_ensemble_pt as hmc_sample, HmcParam};
 use scorus::mcmc::utils::swap_walkers;
 use ndarray::{Array1, ArrayView1};
 
@@ -81,12 +81,14 @@ fn main() {
         problem = problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     }
 
-    let flag_psp:Vec<_>= (0..q.0.len())
+    /*let flag_psp:Vec<_>= (0..q.0.len())
     .map(|x| if x < nx { SSFlag::Fixed } else { SSFlag::Free })
-    .collect();
+    .collect();*/
 
-    let (q_psp, q_rest)=split_ss(&q, &flag_psp);
-    println!("{:?}", q_psp);
+    let flag:Vec<_>=vec![SSFlag::Free; q.0.len()];
+
+    let (q_psp, q_rest)=split_ss(&q, &flag);
+    //println!("{:?}", q_psp);
 
     let mut ensemble:Vec<_>=(0..80).map(|i|{
         if i==0{
@@ -102,6 +104,7 @@ fn main() {
     let n_per_beta=ensemble.len()/nbeta;
 
     let lp_f=problem.get_logprob(&q_rest);
+    let lp_g=problem.get_logprob_grad(&q_rest);
     let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
         println!("{}", i);
         lp_f(x)}).collect();
@@ -109,11 +112,17 @@ fn main() {
     eprintln!("{:?}", lp);
     let mut ufs=UpdateFlagSpec::All;
     
+    let mut epsilon = vec![0.003; beta_list.len()];
+    //let param=HmcParam::quick_adj(0.75);
+    let param = HmcParam::new(0.75, 0.05);
+
     for i in 0..10000{
         if i%10==0{
             swap_walkers(&mut ensemble, &mut lp, &mut rng, &beta_list);
         }
         emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
+        scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
+
         let mut max_i=0;
         let mut max_lp=std::f64::NEG_INFINITY;
         for (j, &x) in lp.iter().enumerate().take(n_per_beta){
