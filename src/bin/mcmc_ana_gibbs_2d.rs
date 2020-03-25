@@ -110,6 +110,9 @@ fn main() {
     let mut ufs=UpdateFlagSpec::All;
     
     for i in 0..10000{
+        if i%10==0{
+            swap_walkers(&mut ensemble, &mut lp, &mut rng, &beta_list);
+        }
         emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
         let mut max_i=0;
         let mut max_lp=std::f64::NEG_INFINITY;
