@@ -31,11 +31,11 @@ const NSTEPS: usize = 10;
 fn main() {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
-    ctrlc::set_handler(move || {
-        println!("ctrl+C pressed, terminating...");
-        r.store(false, Ordering::SeqCst);
-    })
-    .expect("Error setting Ctrl-C handler");
+    //ctrlc::set_handler(move || {
+    //    println!("ctrl+C pressed, terminating...");
+    //    r.store(false, Ordering::SeqCst);
+    //})
+    //.expect("Error setting Ctrl-C handler");
 
     let mut rng = thread_rng();
 
