@@ -1,41 +1,79 @@
 #![allow(clippy::too_many_arguments)]
-use crate::mcmc2d_func;
-use crate::utils::{combine_ss, split_ss, SSFlag};
-use mcmc2d_func::{logprob_ana, logprob_ana_grad};
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use scorus::linear_space::type_wrapper::LsVec;
 use sprs::CsMat;
 
-pub struct Problem {
+use crate::utils::{combine_ss, split_ss, SSFlag};
+use crate::mcmc2d_func::{logprob_ana, logprob_ana_grad};
+use crate::ps_model::PsModel;
+pub struct Problem<P:PsModel+Send+Sync>
+{
     pub tod: Vec<Vec<f64>>,
     pub ptr_mat: Vec<CsMat<f64>>,
     pub n_t: usize,
     pub n_ch: usize,
+    pub ft: Vec<f64>,
+    pub fch: Vec<f64>,
+    pub dt: f64,
+    pub psm: P,
 }
 
-impl Problem {
-    pub fn empty(n_t: usize, n_ch: usize) -> Problem {
+impl<P> Problem<P> 
+where P: PsModel+Sync+Send
+{
+    pub fn empty(n_t: usize, n_ch: usize, psm: P) -> Problem<P> {
+        let dt=2.0;
+        let ft_min = 1.0 / (dt * n_t as f64);
+        let fch_min = 1.0 / n_ch as f64;
+        let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
+            .chain(-(n_t as isize) / 2..0)
+            .map(|i| i as f64 * ft_min)
+            .collect();
+        let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
+            .chain(-(n_ch as isize) / 2..0)
+            .map(|i| i as f64 * fch_min)
+            .collect();
+
         Problem {
             tod: Vec::new(),
             ptr_mat: Vec::new(),
             n_t,
             n_ch,
+            dt,
+            ft, 
+            fch,
+            psm,
         }
     }
 
-    pub fn new(tod: &[f64], ptr_mat: &CsMat<f64>, n_t: usize, n_ch: usize) -> Problem {
+    pub fn new(tod: &[f64], ptr_mat: &CsMat<f64>, n_t: usize, n_ch: usize, psm: P) -> Problem<P> {
         let tod: Vec<_> = tod.to_vec();
+        let dt=2.0;
+        let ft_min = 1.0 / (dt * n_t as f64);
+        let fch_min = 1.0 / n_ch as f64;
+        let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
+            .chain(-(n_t as isize) / 2..0)
+            .map(|i| i as f64 * ft_min)
+            .collect();
+        let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
+            .chain(-(n_ch as isize) / 2..0)
+            .map(|i| i as f64 * fch_min)
+            .collect();
         Problem {
             tod: vec![tod],
             ptr_mat: vec![ptr_mat.clone()],
             n_t,
             n_ch,
+            dt,
+            psm,
+            ft, 
+            fch,
         }
     }
 
-    pub fn with_obs(mut self, tod: &[f64], ptr_mat: &CsMat<f64>) -> Problem {
+    pub fn with_obs(mut self, tod: &[f64], ptr_mat: &CsMat<f64>) -> Problem<P> {
         self.tod.push(tod.to_vec());
         self.ptr_mat.push(ptr_mat.clone());
         self
@@ -47,7 +85,7 @@ impl Problem {
     ) -> impl Fn(&LsVec<f64, Vec<f64>>) -> f64 + 'a + std::marker::Sync + std::clone::Clone {
         let nx = self.ptr_mat[0].cols();
         let q0: Vec<_> = q0.to_vec();
-        move |p: &LsVec<f64, Vec<f64>>| {
+        move |p| {
             let p = combine_ss(p, &q0);
             let sky = p.iter().take(nx).cloned().collect::<Vec<f64>>();
             let psp = p.iter().skip(nx).cloned().collect::<Vec<f64>>();
@@ -57,7 +95,7 @@ impl Problem {
                 .zip(self.tod.par_iter())
                 .map(|(p, t)| {
                     //logprob_ana(&sky, &psp, t, p)
-                    logprob_ana(&sky, &psp, t, p, self.n_t, self.n_ch)
+                    logprob_ana(&sky, &psp, t, p, &self.ft, &self.fch, &self.psm)
                 })
                 .sum::<f64>()
         }
@@ -83,7 +121,7 @@ impl Problem {
                 }
             })
             .collect();
-        move |p1: &LsVec<f64, Vec<f64>>| {
+        move |p1| {
             let p = combine_ss(p1, &q0);
             let sky = p.iter().take(nx).cloned().collect::<Vec<f64>>();
             let psp = p.iter().skip(nx).cloned().collect::<Vec<f64>>();
@@ -102,7 +140,7 @@ impl Problem {
                 .zip(self.tod.par_iter())
                 .map(|(p, t)| {
                     //logprob_ana_grad(&sky, &psp, t, p)
-                    logprob_ana_grad(&sky, &psp, t, p, self.n_t, self.n_ch)
+                    logprob_ana_grad(&sky, &psp, t, p, &self.ft, &self.fch, &self.psm)
                 })
                 .collect();
             let (gx, gp) = grads.into_iter().fold(

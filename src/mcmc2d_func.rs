@@ -8,7 +8,8 @@ use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 
 //use rustfft::{FFTnum, FFTplanner};
-use crate::mathematica::{arctan, log, powerf, poweri};
+use crate::ps_model::PsModel;
+use crate::pl_ps::{ps_model, ps_model_grad};
 
 use crate::utils::{fft2, ifft2};
 //use fftn::{fft2, ifft2};
@@ -22,8 +23,6 @@ use sprs::CsMat;
 //use crate::
 
 use crate::utils::{deflatten_order_f, flatten_order_f};
-pub const PS_W: f64 = 1e-9;
-pub const PS_E: f64 = 1e-9;
 pub const DT: f64 = 2.0;
 pub const FMAX: f64 = 0.5 / DT;
 type T=f64;
@@ -55,364 +54,6 @@ pub fn dft2d_matrix(M: usize, N: usize, forward: bool) -> Array2<Complex<T>>
     result
 }
 
-pub fn smooth_step(x: T, w: T) -> T
-{
-    let two = T::one() + T::one();
-    (T::PI() / two + arctan((x) / w)) / T::PI()
-}
-
-pub fn smooth_step_prime(x: T, w: T) -> T
-{
-    w / (T::PI() * (w.powi(2) + x.powi(2)))
-}
-
-pub fn pl(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let two = T::one() + T::one();
-    let f = f.abs();
-    let a2 = a.powi(2);
-    let y = ((e + f.powi(2)) / (e + f0.powi(2))).powf(alpha / two);
-    let s = smooth_step(f - f0, w);
-    a2 * y * s + a2 * (T::one() - s)
-}
-
-pub fn ps_model(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j] + b2;
-        }
-    }
-    result
-}
-
-pub fn dpl_da(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let two = T::one() + T::one();
-    let f = f.abs();
-    let s = smooth_step(f - f0, w);
-    let y = ((e + f.powi(2)) / (e + f0.powi(2))).powf(alpha / two);
-    (T::one() + (y - T::one()) * s) * two * a
-}
-
-pub fn dps_model_da_t(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_da(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dps_model_da_ch(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| dpl_da(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dpl_df0(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let two = T::one() + T::one();
-    let f = f.abs();
-    //let s=smooth_step(f-f0, w);
-    let y = ((e + f.powi(2)) / (e + f0.powi(2))).powf(alpha / two);
-    //let a2=a.powi(2);
-    a.powi(2)
-        * (-((alpha * f0 * y * smooth_step(f - f0, w)) / (e + f0.powi(2)))
-            - (-T::one() + ((e + f.powi(2)) / (e + f0.powi(2))).powf(alpha / two))
-                * smooth_step_prime(f - f0, w))
-}
-
-pub fn dps_model_df0_t(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_df0(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dps_model_df0_ch(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| dpl_df0(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dpl_dalpha(f: T, a: T, f0: T, alpha: T, w: T, e: T) -> T
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let two = T::one() + T::one();
-    let f = f.abs();
-    let y = (e + f.powi(2)) / (e + f0.powi(2));
-    T::one() / two * a.powi(2) * y.powf(alpha / two) * y.ln() * smooth_step(f - f0, w)
-}
-
-pub fn dps_model_dalpha_t(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| dpl_dalpha(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| pl(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dps_model_dalpha_ch(
-    ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    _b: T,
-    w: T,
-    e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    let a_ch = T::one();
-    let x = ft
-        .par_iter()
-        .map(|&f| pl(f, a_t, ft_0, alpha_t, w, e))
-        .collect::<Vec<_>>();
-    let y = fch
-        .par_iter()
-        .map(|&f| dpl_dalpha(f, a_ch, fch_0, alpha_ch, w, e))
-        .collect::<Vec<_>>();
-    //let b2 = b.powi(2);
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = x[i] * y[j];
-        }
-    }
-    result
-}
-
-pub fn dps_model_db(
-    ft: &[T],
-    fch: &[T],
-    _a_t: T,
-    _ft_0: T,
-    _alpha_t: T,
-    _fch_0: T,
-    _alpha_ch: T,
-    b: T,
-    _w: T,
-    _e: T,
-) -> Array2<T>
-//where
-//    T: Float + FloatConst + NumAssign + std::fmt::Debug + FFTnum + From<u32>,
-{
-    //let a_ch=T::one();
-    let two = T::one() + T::one();
-    let mut result = Array2::<T>::zeros((ft.len(), fch.len()));
-    for i in 0..ft.len() {
-        for j in 0..fch.len() {
-            result[(i, j)] = two * b;
-        }
-    }
-    result
-}
-
-pub fn ps_model_grad(ft: &[T],
-    fch: &[T],
-    a_t: T,
-    ft_0: T,
-    alpha_t: T,
-    fch_0: T,
-    alpha_ch: T,
-    b: T,
-    w: T,
-    e: T)->Vec<Array2<T>>    
-{
-    let dpsd_da_t = dps_model_da_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-
-    let dpsd_df0_t = dps_model_df0_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-    let dpsd_df0_ch = dps_model_df0_ch(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-
-    let dpsd_dalpha_t = dps_model_dalpha_t(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-    let dpsd_dalpha_ch = dps_model_dalpha_ch(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-
-    let dpsd_db = dps_model_db(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, w, e,
-    );
-
-    vec![dpsd_da_t, dpsd_df0_t, dpsd_dalpha_t, dpsd_df0_ch, dpsd_dalpha_ch, dpsd_db]
-}
 
 pub fn ln_xsx(x: ArrayView2<T>, psd: ArrayView2<T>) -> T
 //where
@@ -521,40 +162,18 @@ pub fn logprob_ana(
     psp: &[f64],
     tod: &[f64],
     ptr_mat: &CsMat<f64>,
-    n_t: usize,
-    n_ch: usize,
+    ft: &[f64],
+    fch: &[f64],
+    psm: &dyn PsModel,
 ) -> f64 {
     assert_eq!(psp.len(), 6);
-    let a_t = psp[0];
-    let ft_0 = psp[1];
-    let alpha_t = psp[2];
+    
 
-    let fch_0 = psp[3];
-    let alpha_ch = psp[4];
-
-    let b = psp[5];
-
-    let ft_min = 1.0 / (DT * n_t as f64);
-    let fch_min = 1.0 / n_ch as f64;
-    let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
-        .chain(-(n_t as isize) / 2..0)
-        .map(|i| i as f64 * ft_min)
-        .collect();
-    let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
-        .chain(-(n_ch as isize) / 2..0)
-        .map(|i| i as f64 * fch_min)
-        .collect();
-    let psd = ps_model(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
-
-    if ft_0 > ft_min * (n_t / 2) as f64 || alpha_t < -3.0 || alpha_t > 1.0 {
-        return -std::f64::INFINITY;
-    }
-
-    if fch_0 > fch_min * (n_ch / 2) as f64 || alpha_ch < -3.0 || alpha_ch > 1.0 {
-        return -std::f64::INFINITY;
-    }
+    let psd=psm.value(&ft, &fch, psp);
+    let n_t=ft.len();
+    let n_ch=fch.len();
+    
+    linear_solver::io::RawMM::from_array2(psd.view()).to_file("psd.mtx");
 
     ln_likelihood(x, tod, psd.view(), ptr_mat, n_t, n_ch)
 }
@@ -564,39 +183,26 @@ pub fn logprob_ana_grad(
     psp: &[f64],
     tod: &[f64],
     ptr_mat: &CsMat<f64>,
-    n_t: usize,
-    n_ch: usize,
+    ft: &[f64],
+    fch: &[f64],
+    psm: &dyn PsModel,
 ) -> (Vec<f64>, Vec<f64>) {
     assert_eq!(psp.len(), 6);
-    let a_t = psp[0];
-    let ft_0 = psp[1];
-    let alpha_t = psp[2];
-
-    let fch_0 = psp[3];
-    let alpha_ch = psp[4];
 
     let b = psp[5];
+    let n_t=ft.len();
+    let n_ch=fch.len();
 
-    let ft_min = 1.0 / (DT * n_t as f64);
-    let fch_min = 1.0 / n_ch as f64;
-    let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
-        .chain(-(n_t as isize) / 2..0)
-        .map(|i| i as f64 * ft_min)
-        .collect();
-    let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
-        .chain(-(n_ch as isize) / 2..0)
-        .map(|i| i as f64 * fch_min)
-        .collect();
-    let psd = ps_model(
-        &ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E,
-    );
+    let psd = psm.value(&ft, &fch, psp);
 
 
     //println!("aaa {} {}", psd.nrows(), psd.ncols());
 
     let (gx, gp) = ln_likelihood_grad(x, tod, psd.view(), ptr_mat, n_t, n_ch);
     //let gp = LsVec(gp);
-    let psm_grad=ps_model_grad(&ft, &fch, a_t, ft_0, alpha_t, fch_0, alpha_ch, b, PS_W, PS_E);
+    
+    let psm_grad=psm.grad(&ft, &fch, psp);
+
     let g_ps_param:Vec<_>=psm_grad.into_iter().map(|x| (&x*&gp).sum()).collect();
 
     (gx, g_ps_param)

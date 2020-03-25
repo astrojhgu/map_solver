@@ -20,6 +20,7 @@ use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
 use map_solver::utils::SSFlag;
 use map_solver::utils::{combine_ss, split_ss};
+use map_solver::pl_ps::PlPs;
 
 const L: usize = 5;
 const NSTEPS: usize = 10;
@@ -64,11 +65,13 @@ fn main() {
         LsVec(x)
     };
 
-    let mut problem = Problem::empty(n_t, n_ch);
+    let psm=PlPs{};
+
+    let mut problem = Problem::empty(n_t, n_ch, psm);
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
-    for _i in 0..16 { 
+    for _i in 0..1 { 
         let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
         let noise = flatten_order_f(noise.view());
         let total_tod = &tod + &noise;
@@ -96,7 +99,7 @@ fn main() {
     let lp_f=problem.get_logprob(&q_rest);
     let mut lp:Vec<_>=ensemble.iter().map(|x| lp_f(x)).collect();
 
-    println!("{:?}", lp);
+    eprintln!("{:?}", lp);
     let mut ufs=UpdateFlagSpec::All;
     
     for i in 0..16{
@@ -109,7 +112,7 @@ fn main() {
                 max_i=j;
             }
         }
-        println!("{} {:?} {}", max_i, ensemble[max_i], lp[max_i]);
+        eprintln!("{} {:?} {}", max_i, ensemble[max_i], lp[max_i]);
     }
     
     println!("{:?}", lp);

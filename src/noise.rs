@@ -1,5 +1,5 @@
-use crate::mcmc2d_func::ps_model as ps_model_2d;
-use crate::mcmc2d_func::{PS_E, PS_W};
+use crate::pl_ps::ps_model as ps_model_2d;
+
 //use fftn::{fft2, ifft, ifft2};
 use crate::utils::{fft2, ifft2, fft, ifft};
 use ndarray::Array1;
