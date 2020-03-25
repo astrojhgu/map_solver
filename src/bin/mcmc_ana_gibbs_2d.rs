@@ -15,7 +15,7 @@ use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
 use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
 use scorus::mcmc::hmc::naive::{sample, sample_ensemble_pt as hmc_sample, HmcParam};
 use scorus::mcmc::utils::swap_walkers;
-use ndarray::Array1;
+use ndarray::{Array1, ArrayView1};
 
 use linear_solver::io::RawMM;
 use map_solver::mcmc2d::Problem;
@@ -107,17 +107,19 @@ fn main() {
     eprintln!("{:?}", lp);
     let mut ufs=UpdateFlagSpec::All;
     
-    for i in 0..16{
+    for i in 0..10000{
         emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
         let mut max_i=0;
         let mut max_lp=std::f64::NEG_INFINITY;
         for (j, &x) in lp.iter().enumerate(){
-            if x<max_lp{
+            if x>max_lp{
                 max_lp=x;
                 max_i=j;
             }
         }
         eprintln!("{} {:?} {}", max_i, ensemble[max_i], lp[max_i]);
+        let q=combine_ss(&ensemble[max_i], &q_rest);
+        RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
     }
     
     println!("{:?}", lp);
