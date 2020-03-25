@@ -120,9 +120,19 @@ fn main() {
         if i%10==0{
             swap_walkers(&mut ensemble, &mut lp, &mut rng, &beta_list);
         }
+        let old_lp=lp.clone();
         emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
-        scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
+        let mut emcee_accept_cnt=vec![0; nbeta];
+        for (k, (l1, l2)) in lp.iter().zip(old_lp.iter()).enumerate(){
+            if l1!=l2{
+                emcee_accept_cnt[k/n_per_beta]+=1;
+            }
+        }
 
+        let hmc_accept_cnt=scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
+
+
+        
         let mut max_i=0;
         let mut max_lp=std::f64::NEG_INFINITY;
         for (j, &x) in lp.iter().enumerate().take(n_per_beta){
@@ -133,7 +143,7 @@ fn main() {
         }
 
         eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[nx..], lp[max_i]);
-        eprintln!("{:?}", epsilon);
+        eprintln!("{:?} {:?} {:?}",emcee_accept_cnt,  epsilon, hmc_accept_cnt);
         let q=combine_ss(&ensemble[max_i], &q_rest);
         RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
     }
