@@ -23,7 +23,7 @@ use map_solver::utils::{combine_ss, split_ss};
 use map_solver::mcmc2d_func::{logprob_ana, ln_likelihood, mvn_ln_pdf};
 use map_solver::pl_ps::PlPs;
 use map_solver::utils::{transpose, flatten};
-
+use map_solver::ps_model::PsModel;
 
 const L: usize = 5;
 const NSTEPS: usize = 10;
@@ -56,19 +56,28 @@ fn main() {
     let (fch_0, alpha_ch) = (fch_min * 5_f64, -1.);
     let b = 0.1;
 
+    let ft: Vec<_> = (0..(n_t as isize + 1) / 2)
+            .chain(-(n_t as isize) / 2..0)
+            .map(|i| i as f64 * ft_min)
+            .collect();
+    let fch: Vec<_> = (0..(n_ch as isize + 1) / 2)
+            .chain(-(n_ch as isize) / 2..0)
+            .map(|i| i as f64 * fch_min)
+            .collect();
+
+    
     let nx = ptr_mat.cols();
     //let answer=vec![0.0; answer.len()];
     let psp = vec![1.0, 0.1, -1.0, 0.1, -1.0, 0.0];
-    let mut q = if let Ok(_f) = File::open("dump.mtx") {
-        println!("dumped file found, loading...");
-        LsVec(RawMM::from_file("dump.mtx").to_array1().to_vec())
-    } else {
-        println!("dumped file not found, use default values");
-        
+    let psm=PlPs{};
+
+    let psd=psm.value(&ft, &fch, &psp);
+
+    let mut q = 
+    {
         let x: Vec<_> = answer.iter().chain(psp.iter()).cloned().collect();
         LsVec(x)
     };
-    let psm=PlPs{};
     let mut problem = Problem::empty(n_t, n_ch, psm);
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
@@ -91,4 +100,7 @@ fn main() {
     let lp_f=problem.get_logprob(&q_rest);
 
     println!("{}", lp_f(&LsVec(q_psp)));
+
+    println!("{}",mvn_ln_pdf(noise2d.view(), psd.view()));
+    //ln_likelihood(answer, total_tod.as_slice().unwrap(), psd.view(), &ptr_mat, n_t, n_ch);
 }
