@@ -138,7 +138,7 @@ fn main() {
             }
         }
 
-        eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[nx..], lp[max_i]);
+        eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[..], lp[max_i]);
         eprintln!("{:?} {:?} {:?}",emcee_accept_cnt,  epsilon, hmc_accept_cnt);
         let q=combine_ss(&ensemble[max_i], &q_rest);
         RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
