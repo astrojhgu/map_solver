@@ -4,7 +4,8 @@ use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use scorus::linear_space::type_wrapper::LsVec;
 use sprs::CsMat;
-
+use ndarray::{Array1, ArrayView1};
+use linear_solver::utils::{sp_mul_a1};
 use crate::utils::{combine_ss, split_ss, SSFlag};
 use crate::mcmc2d_func::{logprob_ana, logprob_ana_grad};
 use crate::ps_model::PsModel;
@@ -77,6 +78,21 @@ where P: PsModel+Sync+Send
         self.tod.push(tod.to_vec());
         self.ptr_mat.push(ptr_mat.clone());
         self
+    }
+
+    pub fn guess(&self)->Array1<f64>{
+        let mut ptp=&self.ptr_mat[0].transpose_view()*&self.ptr_mat[0];
+        let mut pty=sp_mul_a1(&self.ptr_mat[0].transpose_view(), ArrayView1::from(&self.tod[0]));
+        for (p, t) in self.ptr_mat.iter().zip(self.tod.iter()).skip(1){
+            ptp=&ptp+&(&p.transpose_view()*p);
+            pty=&pty+&(sp_mul_a1(&p.transpose_view(), ArrayView1::from(t)));
+        }
+        for (&x, (i, j)) in ptp.iter() {
+            assert_eq!(i,j);
+            //result[(i)] = result[(i)] + x * b[(j)];
+            pty[i]/=x;
+        }
+        pty
     }
 
     pub fn get_logprob<'a>(
