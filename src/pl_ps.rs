@@ -418,10 +418,10 @@ impl PsModel for PlPs{
         let fch_min=fch[1];
 
         
-        if ft_0 > ft_min * (n_t / 2) as f64 || alpha_t < -3.0 || alpha_t > 1.0 {
+        if ft_0.abs() > ft_min * (n_t / 2) as f64 || alpha_t < -3.0 || alpha_t > 1.0 {
             return -std::f64::INFINITY;
         }    
-        if fch_0 > fch_min * (n_ch / 2) as f64 || alpha_ch < -3.0 || alpha_ch > 1.0 {
+        if fch_0.abs() > fch_min * (n_ch / 2) as f64 || alpha_ch < -3.0 || alpha_ch > 1.0 {
             return -std::f64::INFINITY;
         }
         0.0
