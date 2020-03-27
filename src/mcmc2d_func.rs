@@ -171,7 +171,7 @@ pub fn logprob_ana(
 
     let psd=psm.value(&ft, &fch, psp);
     if !psm.support(&ft, &fch, psp){
-        return -std::f64::NEG_INFINITY;
+        return std::f64::NEG_INFINITY;
     }
     let n_t=ft.len();
     let n_ch=fch.len();
