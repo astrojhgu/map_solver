@@ -86,7 +86,7 @@ fn main() {
     let mut q=LsVec(q);
 
     let flag_psp:Vec<_>= (0..q.0.len())
-    .map(|x| if x < nx { SSFlag::Free } else { SSFlag::Free })
+    .map(|x| if x < nx { SSFlag::Fixed } else { SSFlag::Free })
     .collect();
 
     let (q_psp, q_rest)=split_ss(&q, &flag_psp);
@@ -128,7 +128,7 @@ fn main() {
             }
         }
 
-        let hmc_accept_cnt=scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
+        //let hmc_accept_cnt=scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
 
 
         
@@ -142,9 +142,9 @@ fn main() {
         }
 
         eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[nx..], lp[max_i]);
-        eprintln!("{:?} {:?} {:?}",emcee_accept_cnt,  epsilon, hmc_accept_cnt);
+        //eprintln!("{:?} {:?} {:?}",emcee_accept_cnt,  epsilon, hmc_accept_cnt);
+        eprintln!("{:?}",emcee_accept_cnt);
         let q=combine_ss(&ensemble[max_i], &q_rest);
         RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
     }
-    
 }
