@@ -63,15 +63,12 @@ fn main() {
     
     let nx = ptr_mat.cols();
     //let answer=vec![0.0; answer.len()];
-    let psp = vec![1.0, 0.1, -1.0, 0.1, -1.0, 0.0];
+    
     let psm=PlPs{};
 
-    let psd=psm.value(&ft, &fch, &psp);
-
-    let mut q=LsVec(RawMM::<f64>::from_file("q0.mtx").to_array1().to_vec());
-    println!("{:?}", q);
+    //let mut q=LsVec(RawMM::<f64>::from_file("q0.mtx").to_array1().to_vec());
+    //println!("{:?}", q);
     let mut problem = Problem::empty(n_t, n_ch, psm);
-
     for i in 0..16{
         println!("{}",i);
         let noise_file_name=format!("noise_{}.mtx", i);
@@ -81,6 +78,11 @@ fn main() {
         let total_tod=&tod+&noise;
         problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     }
+
+    let mut q=problem.guess().to_vec();
+    let mut psp=vec![10.0, 0.01, -1.0, 0.05, -1.0, 1.0];
+    q.append(&mut psp);
+    let mut q=LsVec(q);
 
     let flag_psp:Vec<_>= (0..q.0.len())
     .map(|x| if x < nx { SSFlag::Free } else { SSFlag::Free })
