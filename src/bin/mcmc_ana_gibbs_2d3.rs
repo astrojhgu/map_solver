@@ -80,7 +80,8 @@ fn main() {
     }
 
     let mut q=problem.guess().to_vec();
-    let mut psp=vec![10.0, 0.01, -1.0, 0.05, -1.0, 1.0];
+    //let mut psp=vec![10.0, 0.01, -1.0, 0.05, -1.0, 1.0];
+    let mut psp=vec![30.0, 0.01, -0.0, 0.05, -0.0, 0.0];
     q.append(&mut psp);
     let mut q=LsVec(q);
 
