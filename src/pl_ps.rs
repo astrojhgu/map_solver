@@ -403,7 +403,7 @@ impl PsModel for PlPs{
     fn nparams(&self)->usize{
         6
     }
-    fn priori(&self, ft: &[f64], fch: &[f64], psp: &[f64])->f64{
+    fn support(&self, ft: &[f64], fch: &[f64], psp: &[f64])->bool{
         let a_t = psp[0];
         let ft_0 = psp[1];
         let alpha_t = psp[2];
@@ -419,12 +419,12 @@ impl PsModel for PlPs{
 
         
         if ft_0.abs() > ft_min * (n_t / 2) as f64 || alpha_t < -3.0 || alpha_t > 1.0 {
-            return -std::f64::INFINITY;
+            return false;
         }    
         if fch_0.abs() > fch_min * (n_ch / 2) as f64 || alpha_ch < -3.0 || alpha_ch > 1.0 {
-            return -std::f64::INFINITY;
+            return false;
         }
-        0.0
+        true
     
     }
 }

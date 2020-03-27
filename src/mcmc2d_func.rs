@@ -170,6 +170,9 @@ pub fn logprob_ana(
     
 
     let psd=psm.value(&ft, &fch, psp);
+    if !psm.support(&ft, &fch, psp){
+        return -std::f64::NEG_INFINITY;
+    }
     let n_t=ft.len();
     let n_ch=fch.len();
     
@@ -191,8 +194,6 @@ pub fn logprob_ana_grad(
     let n_ch=fch.len();
 
     let psd = psm.value(&ft, &fch, psp);
-
-
     //println!("aaa {} {}", psd.nrows(), psd.ncols());
 
     let (gx, gp) = ln_likelihood_grad(x, tod, psd.view(), ptr_mat, n_t, n_ch);
