@@ -84,11 +84,10 @@ fn main() {
     
     let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
     let mut x=problem.guess().to_vec();
-    problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
-    println!("{:?}", psp);
-    problem.solve_map(&mut x, &psp);
-    problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
-    println!("{:?}", psp);
-    problem.solve_map(&mut x, &psp);
 
+    for i in 0..10{
+        problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
+        println!("{:?}", psp);
+        problem.solve_map(&mut x, &psp);    
+    }
 }
