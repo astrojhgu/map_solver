@@ -3,12 +3,28 @@ use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
 use scorus::linear_space::type_wrapper::LsVec;
+use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
+use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
+use scorus::mcmc::utils::swap_walkers;
+
+use rand::Rng;
+use rand_distr::StandardNormal;
+
+
 use sprs::CsMat;
-use ndarray::{Array1, ArrayView1};
+use num_complex::Complex64;
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2, ArrayViewMut1};
+use crate::utils::{fft2, ifft2};
 use linear_solver::utils::{sp_mul_a1};
-use crate::utils::{combine_ss, split_ss, SSFlag};
+use linear_solver::minres::agmres;
+use linear_solver::io::RawMM;
+
+
+
+use crate::utils::{combine_ss, split_ss, SSFlag, flatten, deflatten};
 use crate::mcmc2d_func::{logprob_ana, logprob_ana_grad};
 use crate::ps_model::PsModel;
+
 pub struct Problem<P:PsModel+Send+Sync>
 {
     pub tod: Vec<Vec<f64>>,
@@ -20,6 +36,46 @@ pub struct Problem<P:PsModel+Send+Sync>
     pub dt: f64,
     pub psm: P,
 }
+
+pub fn build_b1(ptr_mat: &CsMat<f64>, psd: ArrayView2<f64>, tod: ArrayView1<f64>, n_t: usize, n_ch: usize)->Array1<f64>{
+    let tod2d=deflatten(tod, n_ch, n_t);
+    let mut x=tod2d.map(|&x| Complex64::from(x));
+    let mut X = Array2::zeros((n_ch, n_t));
+    fft2(x.view_mut(), X.view_mut());
+    X=&X/&psd;
+    ifft2(X.view_mut(), x.view_mut());
+    let x=x.map(|x| x.re);
+    let x=flatten(x.view());
+    sp_mul_a1(&ptr_mat.transpose_view(), x.view())
+}
+
+pub fn func_a1(ptr_mat: &CsMat<f64>, psd: ArrayView2<f64>, x: ArrayView1<f64>, n_t: usize, n_ch: usize)->Array1<f64>{
+    //println!("x:{:?}", deflatten(sp_mul_a1(ptr_mat, x).view(), n_t, n_ch));
+    let mut x_c=deflatten(sp_mul_a1(ptr_mat, x).view(), n_ch, n_t).map(|&x| Complex64::from(x));//x_c=Px
+    let mut X = Array2::zeros((n_ch, n_t));
+    fft2(x_c.view_mut(), X.view_mut());
+    X=&X/&psd;
+    ifft2(X.view_mut(), x_c.view_mut());
+    let nax=flatten(x_c.map(|x1| x1.re).view());//nax=N^-1Px
+    sp_mul_a1(&ptr_mat.transpose_view(), nax.view())
+}
+
+pub fn build_b(ptr_mat: &[CsMat<f64>], psd: ArrayView2<f64>, tod: &[Vec<f64>], n_t: usize, n_ch: usize)->Array1<f64>{
+    let mut result=build_b1(&ptr_mat[0], psd.view(), ArrayView1::from(&tod[0]), n_t, n_ch);
+    for (pm1, tod1) in ptr_mat.iter().zip(tod.iter()).skip(1){
+        result=&result+&build_b1(pm1, psd.view(), ArrayView1::from(tod1), n_t, n_ch);
+    }
+    result
+}
+
+pub fn func_a(ptr_mat: &[CsMat<f64>], psd: ArrayView2<f64>, x: ArrayView1<f64>, n_t: usize, n_ch: usize)->Array1<f64>{
+    let mut result=func_a1(&ptr_mat[0], psd.view(), x.view(), n_t, n_ch);
+    for p in ptr_mat.iter().skip(1){
+        result=&result+&func_a1(p, psd.view(), x.view(), n_t, n_ch);
+    }
+    result
+}
+
 
 impl<P> Problem<P> 
 where P: PsModel+Sync+Send
@@ -171,5 +227,89 @@ where P: PsModel+Sync+Send
             assert_eq!(g.len(), p1.len());
             LsVec(g)
         }
+    }
+
+    pub fn solve_map(&self, x0: &mut [f64], psp: &[f64]){
+        
+        let psd=self.psm.value(&self.ft, &self.fch, psp);
+        let b=build_b(&self.ptr_mat, psd.view(), &self.tod, self.n_t, self.n_ch);
+        let A=|x: ArrayView1<f64>|{func_a(&self.ptr_mat, psd.view(), x, self.n_t, self.n_ch)};
+
+        let mut solver=agmres::AGmresState::new(&A, ArrayView1::from(x0 as &[f64]), b.view(), None, 50, 20, 1, 0.4, 1e-9);
+        while !solver.converged {
+            println!("{} {}", solver.tol, solver.resid);
+            solver.next(&A, None);
+        }
+        ArrayViewMut1::from(x0).assign(&solver.x);
+    }
+
+    pub fn sample_psp<U>(&self, x: &[f64], psp0: &mut [f64], nwalkers_per_beta: usize, beta_list: &[f64], niter: usize, rng: &mut U)
+    where U: Rng
+    {
+        let psp0_vec=psp0.to_vec();
+        let nbeta=beta_list.len();
+        let nwalkers=nwalkers_per_beta*nbeta;
+        let mut ensemble:Vec<_>=(0..nwalkers).map(|i|{
+            if i==0{
+                LsVec(psp0_vec.clone())
+            }else{
+                LsVec(psp0_vec.iter().map(|x: &f64| *x+0.01*rng.sample::<f64, StandardNormal>(StandardNormal)).collect())
+            }
+            
+        }).collect();
+        let nx=self.ptr_mat[0].cols();
+        assert_eq!(x.len(), nx);
+        assert_eq!(psp0.len(), self.psm.nparams());
+        let mut q=x.to_vec();
+        for &q1 in psp0.iter(){
+            q.push(q1);
+        }
+
+        let flag_psp:Vec<_>= (0..q.len())
+            .map(|x| if x < nx { SSFlag::Fixed } else { SSFlag::Free })
+            .collect();
+
+        let (q_psp, q_rest)=split_ss(&q, &flag_psp);
+        let lp_f=self.get_logprob(&q_rest);
+        
+        let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
+            println!("{}", i);
+            lp_f(x)}).collect();
+        
+        let mut ufs=UpdateFlagSpec::All;
+        let mut max_lp_all=std::f64::NEG_INFINITY;
+        let mut optimal_psp=Vec::new();
+        for i in 0..niter{
+            if i%10==0{
+                swap_walkers(&mut ensemble, &mut lp, rng, beta_list);
+            }
+            let old_lp=lp.clone();
+            emcee_pt(&lp_f, &mut ensemble, &mut lp, rng, 2.0, &mut ufs, beta_list);
+            let mut emcee_accept_cnt=vec![0; nbeta];
+            for (k, (l1, l2)) in lp.iter().zip(old_lp.iter()).enumerate(){
+                if l1!=l2{
+                    emcee_accept_cnt[k/nwalkers_per_beta]+=1;
+                }
+            }
+            
+            let mut max_i=0;
+            let mut max_lp=std::f64::NEG_INFINITY;
+            for (j, &x) in lp.iter().enumerate().take(nwalkers_per_beta){
+                if x>max_lp{
+                    max_lp=x;
+                    max_i=j;
+                }
+            }
+
+            if max_lp>max_lp_all{
+                max_lp_all=max_lp;
+                optimal_psp=ensemble[max_i].0.clone();
+            }
+            eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[..], lp[max_i]);
+            eprintln!("{:?}",emcee_accept_cnt);
+            let q=combine_ss(&ensemble[max_i], &q_rest);
+            //RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
+        }
+        ArrayViewMut1::from(psp0).assign(&ArrayView1::from(&optimal_psp));
     }
 }

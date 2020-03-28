@@ -82,75 +82,8 @@ fn main() {
     let mut q=problem.guess().to_vec();
     //let mut psp=vec![10.0, 0.01, -1.0, 0.05, -1.0, 1.0];
     let mut psp=vec![30.0, 0.0001, -0.0, 0.0005, -0.0, 0.0];
-    q.append(&mut psp);
-    let mut q=LsVec(q);
-
-    let flag_psp:Vec<_>= (0..q.0.len())
-    .map(|x| if x < nx { SSFlag::Fixed } else { SSFlag::Free })
-    .collect();
-
-    let (q_psp, q_rest)=split_ss(&q, &flag_psp);
-    let lp_f=problem.get_logprob(&q_rest);
-    let lp_g=problem.get_logprob_grad(&q_rest);
-
-    let mut ensemble:Vec<_>=(0..80).map(|i|{
-        if i==0{
-            LsVec(q_psp.clone())
-        }else{
-            LsVec(q_psp.iter().map(|x: &f64| *x+0.01*rng.sample::<f64, StandardNormal>(StandardNormal)).collect())
-        }
-        
-    }).collect();
-
+    
     let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
-    let nbeta=beta_list.len();
-    let n_per_beta=ensemble.len()/nbeta;
-
-    let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
-        println!("{}", i);
-        lp_f(x)}).collect();
-    let mut ufs=UpdateFlagSpec::All;
-    let mut epsilon = vec![0.003; beta_list.len()];
-    //let param=HmcParam::quick_adj(0.75);
-    let param = HmcParam::new(0.75, 0.05);
-
-    let mut max_lp_all=std::f64::NEG_INFINITY;
-    let mut optimal_psp=Vec::new();
-    for i in 0..500{
-        if i%10==0{
-            swap_walkers(&mut ensemble, &mut lp, &mut rng, &beta_list);
-        }
-        let old_lp=lp.clone();
-        emcee_pt(&lp_f, &mut ensemble, &mut lp, &mut rng, 2.0, &mut ufs, &beta_list);
-        let mut emcee_accept_cnt=vec![0; nbeta];
-        for (k, (l1, l2)) in lp.iter().zip(old_lp.iter()).enumerate(){
-            if l1!=l2{
-                emcee_accept_cnt[k/n_per_beta]+=1;
-            }
-        }
-
-        //let hmc_accept_cnt=scorus::mcmc::hmc::naive::sample_ensemble_pt(&lp_f, &lp_g, &mut ensemble, &mut lp, &mut rng, &mut epsilon, &beta_list, L, &param);
-
-
-        
-        let mut max_i=0;
-        let mut max_lp=std::f64::NEG_INFINITY;
-        for (j, &x) in lp.iter().enumerate().take(n_per_beta){
-            if x>max_lp{
-                max_lp=x;
-                max_i=j;
-            }
-        }
-
-        if max_lp>max_lp_all{
-            max_lp_all=max_lp;
-            optimal_psp=ensemble[max_i].0.clone();
-        }
-
-        eprintln!("{} {:?} {}", max_i, &(ensemble[max_i].0)[..], lp[max_i]);
-        //eprintln!("{:?} {:?} {:?}",emcee_accept_cnt,  epsilon, hmc_accept_cnt);
-        eprintln!("{:?}",emcee_accept_cnt);
-        let q=combine_ss(&ensemble[max_i], &q_rest);
-        RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
-    }
+    let mut x=problem.guess();
+    problem.sample_psp(x.as_slice().unwrap(), &mut psp, 20, &beta_list, 500, &mut rng);
 }
