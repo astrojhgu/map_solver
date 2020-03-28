@@ -79,11 +79,16 @@ fn main() {
         problem=problem.with_obs(total_tod.as_slice().unwrap(), &ptr_mat);
     }
 
-    let mut q=problem.guess().to_vec();
     //let mut psp=vec![10.0, 0.01, -1.0, 0.05, -1.0, 1.0];
     let mut psp=vec![30.0, 0.0001, -0.0, 0.0005, -0.0, 0.0];
     
     let beta_list:Vec<_>=(0..4).map(|i| 0.5_f64.powi(i)).collect();
-    let mut x=problem.guess();
-    problem.sample_psp(x.as_slice().unwrap(), &mut psp, 20, &beta_list, 500, &mut rng);
+    let mut x=problem.guess().to_vec();
+    problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
+    println!("{:?}", psp);
+    problem.solve_map(&mut x, &psp);
+    problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
+    println!("{:?}", psp);
+    problem.solve_map(&mut x, &psp);
+
 }
