@@ -261,8 +261,19 @@ where P: PsModel+Sync+Send
 
         let (q_psp, q_rest)=split_ss(&q, &flag_psp);
         let lp_f=self.get_logprob(&q_rest);
-        let (lower, upper)=self.psm.boundaries(&self.ft, &self.fch);
-        let mut pso=ParticleSwarmMaximizer::new(&lp_f, &LsVec(lower.to_vec()), &LsVec(upper.to_vec()), Some(LsVec(psp0.to_vec())), nwalkers, rng);
+        //let (lower, upper)=self.psm.boundaries(&self.ft, &self.fch);
+        let mut ensemble:Vec<_>=(0..nwalkers).map(|i|{
+            if i==0{
+                LsVec(q_psp.clone())
+            }else{
+                LsVec(q_psp.iter().map(|x: &f64| *x+0.01*rng.sample::<f64, StandardNormal>(StandardNormal)).collect())
+            }
+            
+        }).collect();
+    
+
+        //let mut pso=ParticleSwarmMaximizer::new(&lp_f, &LsVec(lower.to_vec()), &LsVec(upper.to_vec()), Some(LsVec(psp0.to_vec())), nwalkers, rng);
+        let mut pso=ParticleSwarmMaximizer::from_ensemble(&lp_f, &ensemble, Some(LsVec(psp0.to_vec())));
         while !pso.converged(0.7, 1e-6, 1e-6) {
             if let Some(ref gbest) = pso.gbest {
                 eprintln!("{:?} {}", gbest.position, gbest.fitness);
