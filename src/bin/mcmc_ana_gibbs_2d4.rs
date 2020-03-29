@@ -86,7 +86,7 @@ fn main() {
     let mut x=problem.guess().to_vec();
 
     for i in 0..10{
-        problem.sample_psp(&x, &mut psp, 20, &beta_list, 500, &mut rng);
+        problem.sample_psp(&x, &mut psp, 96, &mut rng);
         println!("{:?}", psp);
         problem.solve_map(&mut x, &psp);    
     }

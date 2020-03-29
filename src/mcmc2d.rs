@@ -6,7 +6,7 @@ use scorus::linear_space::type_wrapper::LsVec;
 use scorus::mcmc::ensemble_sample::sample_pt as emcee_pt;
 use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
 use scorus::mcmc::utils::swap_walkers;
-
+use scorus::opt::pso::{Particle, ParticleSwarmMaximizer};
 use rand::Rng;
 use rand_distr::StandardNormal;
 
@@ -243,20 +243,10 @@ where P: PsModel+Sync+Send
         ArrayViewMut1::from(x0).assign(&solver.x);
     }
 
-    pub fn sample_psp<U>(&self, x: &[f64], psp0: &mut [f64], nwalkers_per_beta: usize, beta_list: &[f64], niter: usize, rng: &mut U)
+    pub fn sample_psp<U>(&self, x: &[f64], psp0: &mut [f64], nwalkers: usize, rng: &mut U)
     where U: Rng
     {
         let psp0_vec=psp0.to_vec();
-        let nbeta=beta_list.len();
-        let nwalkers=nwalkers_per_beta*nbeta;
-        let mut ensemble:Vec<_>=(0..nwalkers).map(|i|{
-            if i==0{
-                LsVec(psp0_vec.clone())
-            }else{
-                LsVec(psp0_vec.iter().map(|x: &f64| *x+0.01*rng.sample::<f64, StandardNormal>(StandardNormal)).collect())
-            }
-            
-        }).collect();
         let nx=self.ptr_mat[0].cols();
         assert_eq!(x.len(), nx);
         assert_eq!(psp0.len(), self.psm.nparams());
@@ -271,45 +261,23 @@ where P: PsModel+Sync+Send
 
         let (q_psp, q_rest)=split_ss(&q, &flag_psp);
         let lp_f=self.get_logprob(&q_rest);
-        
-        let mut lp:Vec<_>=ensemble.par_iter().enumerate().map(|(i, x)| {
-            println!("{}", i);
-            lp_f(x)}).collect();
-        
-        let mut ufs=UpdateFlagSpec::All;
-        let mut max_lp_all=std::f64::NEG_INFINITY;
-        let mut optimal_psp=Vec::new();
-        for i in 0..niter{
-            if i%10==0{
-                swap_walkers(&mut ensemble, &mut lp, rng, beta_list);
+        let (lower, upper)=self.psm.boundaries(&self.ft, &self.fch);
+        let mut pso=ParticleSwarmMaximizer::new(&lp_f, &LsVec(lower.to_vec()), &LsVec(upper.to_vec()), Some(LsVec(psp0.to_vec())), nwalkers, rng);
+        while !pso.converged(0.7, 1e-6, 1e-6) {
+            if let Some(ref gbest) = pso.gbest {
+                eprintln!("{:?} {}", gbest.position, gbest.fitness);
+            } else {
+                eprint!(".")
             }
-            let old_lp=lp.clone();
-            emcee_pt(&lp_f, &mut ensemble, &mut lp, rng, 2.0, &mut ufs, beta_list);
-            let mut emcee_accept_cnt=vec![0; nbeta];
-            for (k, (l1, l2)) in lp.iter().zip(old_lp.iter()).enumerate(){
-                if l1!=l2{
-                    emcee_accept_cnt[k/nwalkers_per_beta]+=1;
-                }
-            }
-            
-            let mut max_i=0;
-            let mut max_lp=std::f64::NEG_INFINITY;
-            for (j, &x) in lp.iter().enumerate().take(nwalkers_per_beta){
-                if x>max_lp{
-                    max_lp=x;
-                    max_i=j;
-                }
-            }
-
-            if max_lp>max_lp_all{
-                max_lp_all=max_lp;
-                optimal_psp=ensemble[max_i].0.clone();
-            }
-            eprintln!("{} {} {:?} {}",i, max_i, &(ensemble[max_i].0)[..], lp[max_i]);
-            eprintln!("{:?}",emcee_accept_cnt);
-            let q=combine_ss(&ensemble[max_i], &q_rest);
-            //RawMM::from_array1(ArrayView1::from(&q)).to_file("dump.mtx");
+            pso.sample(rng, 0.75, 0.5, 1.);
         }
-        ArrayViewMut1::from(psp0).assign(&ArrayView1::from(&optimal_psp));
+
+        let x:Vec<f64>=if let Some(ref gbest) = pso.gbest {
+            gbest.position.clone().0
+        }else{
+            panic!()
+        };
+
+        ArrayViewMut1::from(psp0).assign(&ArrayView1::from(&x));
     }
 }

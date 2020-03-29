@@ -1,5 +1,5 @@
 use num_traits::{One, Zero, FloatConst};
-use ndarray::{Array2};
+use ndarray::{Array1, Array2, array};
 use rayon::iter::IndexedParallelIterator;
 use rayon::iter::IntoParallelRefIterator;
 use rayon::iter::ParallelIterator;
@@ -425,6 +425,17 @@ impl PsModel for PlPs{
             return false;
         }
         true
-    
     }
+
+    fn boundaries(&self, ft: &[f64], fch: &[f64])->(Array1<f64>, Array1<f64>){
+        let n_t=ft.len();
+        let n_ch=fch.len();
+        let ft_min=ft[1];
+        let fch_min=fch[1];
+        let ft_max=ft_min*(n_t/4) as f64;
+        let fch_max=fch_min*(n_ch/4) as f64;
+        (array![1e-10, ft_min, -3.0, fch_min, -3.0, 1e-10],
+            array![1e0, ft_max, 0.0, fch_max, 0.0, 1e0])
+    }
+
 }
