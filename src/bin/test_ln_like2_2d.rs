@@ -10,7 +10,7 @@ use ndarray::{Array1, ArrayView1};
 //use num_traits::identities::Zero;
 use linear_solver::io::RawMM;
 use map_solver::mcmc2d_func::DT;
-use map_solver::mcmc2d_func::{logprob_ana, logprob_ana_grad};
+use map_solver::mcmc2d_func::{logprob_ana, logprob_ana_grad, ln_likelihood_grad};
 use map_solver::noise::gen_noise_2d;
 use map_solver::utils::flatten_order_f;
 use map_solver::ps_model::PsModel;
@@ -47,8 +47,11 @@ fn main() {
 
     let psd_param = vec![a_t, ft_0, alpha_t, fch_0, alpha_ch, b];
 
-    let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0) * 0.2;
-    let noise = flatten_order_f(noise.view());
+    let noise = gen_noise_2d(n_t, n_ch, &psd_param, &mut rng, 2.0);
+
+    RawMM::from_array2(noise.view()).to_file("noise.mtx");
+    
+    let noise = flatten(noise.view());
     let total_tod = &tod + &noise;
     let psm=PlPs{};
     let lp1 = logprob_ana(
@@ -60,10 +63,15 @@ fn main() {
         &fch,
         &psm,
     );
+    println!("{}", lp1);
+    ;
+
+    println!("{:?}",psm.grad(&ft, &fch, &psd_param)[2]);
+
 
     let dx_sigma = 1e-5;
 
-    for _i in 0..100 {
+    for _i in 0..1 {
         let dx: Array1<f64> = answer.map(|_| {
             let f: f64 = rng.sample(StandardNormal);
             f * dx_sigma
@@ -106,6 +114,15 @@ fn main() {
             &fch,
             &psm
         );
+
+        let psd=psm.value(ft.as_slice(), fch.as_slice(), &psd_param);
+        let (_, gp1)=ln_likelihood_grad(answer.as_slice().unwrap(), total_tod.as_slice().unwrap(), psd.view(), &ptr_mat, n_t, n_ch);
+        RawMM::from_array2(gp1.view()).to_file("gp1.mtx");
+
+        let a=ndarray::Array1::from_vec(gx.clone());
+        let b=ndarray::Array1::from_vec(gp.clone());
+        RawMM::from_array1(a.view()).to_file("gx.mtx");
+        RawMM::from_array1(b.view()).to_file("gp.mtx");
         println!("gx {} gp {}", gx.len(), gp.len());
         let diff2 = ArrayView1::from(&gx).dot(&dx) + ArrayView1::from(&gp).dot(&dp);
         println!(

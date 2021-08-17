@@ -306,7 +306,7 @@ where
 pub fn fft2(mut in_data: ArrayViewMut2<Complex<f64>>, 
             mut out_data: ArrayViewMut2<Complex<f64>>){
     let mut plan=C2CPlan64::new(&[in_data.nrows(),in_data.ncols()], in_data.as_slice_mut().unwrap(), out_data.as_slice_mut().unwrap(), 
-    Sign::Forward, Flag::Estimate).unwrap();
+    Sign::Forward, Flag::ESTIMATE).unwrap();
     plan.c2c(&mut in_data.as_slice_mut().unwrap(), &mut out_data.as_slice_mut().unwrap());
     let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt());
     out_data/=n;
@@ -315,7 +315,7 @@ pub fn fft2(mut in_data: ArrayViewMut2<Complex<f64>>,
 pub fn ifft2(mut in_data: ArrayViewMut2<Complex<f64>>, 
     mut out_data: ArrayViewMut2<Complex<f64>>){
     let mut plan=C2CPlan64::new(&[in_data.nrows(),in_data.ncols()], in_data.as_slice_mut().unwrap(), out_data.as_slice_mut().unwrap(), 
-    Sign::Backward, Flag::Estimate).unwrap();
+    Sign::Backward, Flag::ESTIMATE).unwrap();
     plan.c2c(&mut in_data.as_slice_mut().unwrap(), &mut out_data.as_slice_mut().unwrap());
     let n=Complex::<f64>::from((in_data.ncols() as f64*in_data.nrows() as f64).sqrt());
     out_data/=n;
@@ -324,7 +324,7 @@ pub fn ifft2(mut in_data: ArrayViewMut2<Complex<f64>>,
 pub fn fft(in_data: &mut [Complex<f64>], 
     out_data: &mut [Complex<f64>]){
     let mut plan=C2CPlan64::new(&[in_data.len()], in_data, out_data, 
-    Sign::Forward, Flag::Estimate).unwrap();
+    Sign::Forward, Flag::ESTIMATE).unwrap();
     plan.c2c(in_data, out_data);
     let n=Complex::<f64>::from((in_data.len() as f64).sqrt());
     //out_data/=n;
@@ -336,7 +336,7 @@ pub fn fft(in_data: &mut [Complex<f64>],
 pub fn ifft(in_data: &mut [Complex<f64>], 
     out_data: &mut [Complex<f64>]){
     let mut plan=C2CPlan64::new(&[in_data.len()], in_data, out_data, 
-    Sign::Backward, Flag::Estimate).unwrap();
+    Sign::Backward, Flag::ESTIMATE).unwrap();
     plan.c2c(in_data, out_data);
     let n=Complex::<f64>::from((in_data.len() as f64).sqrt());
     //out_data/=n;

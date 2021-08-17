@@ -337,8 +337,8 @@ mod tests {
 
     fn get_psd_vec() -> (Vec<f64>, usize, usize) {
         let a = get_psd();
-        let n_t = a.nrows();
-        let n_ch = a.ncols();
+        let n_ch = a.nrows();
+        let n_t = a.ncols();
         (super::flatten(a.view()).to_vec(), n_t, n_ch)
     }
 
@@ -355,7 +355,7 @@ mod tests {
         let psd = super::deflatten(ndarray::ArrayView1::from(&psd), n_ch, n_t);
         RawMM::from_array2(psd.view()).to_file("psd.mtx");
         let smart_answer = super::ln_xsx(x.view(), psd.view());
-        //println!("{} {}", smart_answer, brute_force_answer);
+        println!("a: {} {}", smart_answer, brute_force_answer);
         assert!((smart_answer - brute_force_answer).abs() < 1e-3);
     }
 
