@@ -69,7 +69,7 @@ fn main() {
     //let mut q=LsVec(RawMM::<f64>::from_file("q0.mtx").to_array1().to_vec());
     //println!("{:?}", q);
     let mut problem = Problem::empty(n_t, n_ch, psm);
-    for i in 0..16{
+    for i in 0..32{
         println!("{}",i);
         let noise_file_name=format!("noise_{}.mtx", i);
         //let noise=RawMM::<f64>::from_file(noise_file_name.as_str()).to_array1();
