@@ -36,7 +36,7 @@ pub fn dft2d_matrix(M: usize, N: usize, forward: bool) -> Array2<Complex<T>>
     } else {
         two * T::PI()
     };
-    let w = Complex::from_polar(&T::one(), &ang);
+    let w = Complex::from_polar(T::one(), ang);
     let norm = T::from_usize(M * N).unwrap().sqrt();
     for m in 0..M {
         for n in 0..N {

@@ -8,6 +8,7 @@ use scorus::mcmc::ensemble_sample::UpdateFlagSpec;
 use scorus::mcmc::utils::swap_walkers;
 use scorus::opt::pso::{Particle, ParticleSwarmMaximizer};
 use rand::Rng;
+use rand_core::RngCore;
 use rand_distr::StandardNormal;
 
 
